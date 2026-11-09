@@ -29,8 +29,8 @@ pub const fn rr(val: u8, c: u8) -> (u8, bool) { (val >> 1 | c << 7, val & 1 == 1
 
 const fn sla(val: u8) -> (u8, bool) { (val << 1, val >> 7 == 1) }
 
-const fn sra(val: u8) -> (u8, bool) { (val.rotate_right(1), val & 1 == 1) }
+const fn sra(val: u8) -> (u8, bool) { (val >> 1 | (val & 0x80), val & 1 == 1) }
 
 const fn srl(val: u8) -> (u8, bool) { (val >> 1, val & 1 == 1) }
 
-const fn swap(val: u8) -> (u8, bool) { (val.rotate_right(4), val & 1 == 1) }
+const fn swap(val: u8) -> (u8, bool) { (val.rotate_right(4), false) }

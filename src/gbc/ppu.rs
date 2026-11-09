@@ -1,8 +1,8 @@
 use super::config::GCMode;
 use super::io_reg::{IOReg, IORegister};
 use super::memory_map::{
-    BGP, DMA, DMA_END, DMA_START, LCDC, LY, LYC, OAM_END, OAM_SIZE, OAM_START, OBP0, OBP1, PAL_END, PAL_START, SCX, SCY,
-    STAT, VBK, VRAM_END, VRAM_SIZE, VRAM_START, WX, WY,
+    BGP, DMA, DMA_END, DMA_START, LCDC, LY, LYC, OAM_END, OAM_SIZE, OAM_START, OBP0, OBP1, PAL_END, PAL_START, SCX,
+    SCY, STAT, VBK, VRAM_END, VRAM_SIZE, VRAM_START, WX, WY,
 };
 
 pub const WIDTH: usize = 160;
@@ -11,8 +11,7 @@ pub const HEIGHT: usize = 144;
 const LCDC_OFF: u8 = 7;
 // const LDCL_OSIZE: u8 = 2;
 
-const PALETTE_ORIGNAL: [[u8; 3]; 4] =
-    [[0x2A, 0x41, 0x39], [0x7B, 0x82, 0x0F], [0x5A, 0x79, 0x42], [0x39, 0x59, 0x4A]];
+const PALETTE_ORIGNAL: [[u8; 3]; 4] = [[0x2A, 0x41, 0x39], [0x7B, 0x82, 0x0F], [0x5A, 0x79, 0x42], [0x39, 0x59, 0x4A]];
 
 #[derive(PartialEq, Clone, Eq)]
 pub enum PpuMode {
