@@ -66,8 +66,15 @@ pub fn add16(lhs: u16, rhs: u16, carry: bool) -> (u16, Flags) {
     let r = lhs.wrapping_add(rhs).wrapping_add(carry as u32);
     let x = lhs ^ rhs ^ r;
     let result = r as u16;
-    let flags = Flags { z: result == 0, n: false, h: x & 0x10000 != 0, c: x & 0x1000000 != 0 };
+    let flags = Flags { z: result == 0, n: false, h: x & 0x1000 != 0, c: x & 0x10000 != 0 };
     (result, flags)
+}
+
+pub fn add_sp_e8(sp: u16, e: i8) -> (u16, Flags) {
+    let rhs = e as i16 as u16;
+    let result = sp.wrapping_add(rhs);
+    let x = sp ^ rhs ^ result;
+    (result, Flags { z: false, n: false, h: x & 0x10 != 0, c: x & 0x100 != 0 })
 }
 
 pub fn sub16(lhs: u16, rhs: u16, carry: bool) -> (u16, Flags) {
@@ -75,6 +82,6 @@ pub fn sub16(lhs: u16, rhs: u16, carry: bool) -> (u16, Flags) {
     let r = lhs.wrapping_sub(rhs).wrapping_sub(carry as u32);
     let x = lhs ^ rhs ^ r;
     let result = r as u16;
-    let flags = Flags { z: result == 0, n: false, h: x & 0x100000 != 0, c: x & 0x1000000 != 0 };
+    let flags = Flags { z: result == 0, n: false, h: x & 0x1000 != 0, c: x & 0x10000 != 0 };
     (result, flags)
 }

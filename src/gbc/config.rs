@@ -5,9 +5,9 @@ use crate::args::Args;
 
 use super::cart::CGB_FLAG;
 use super::memory_map::{
-    BCPD, BCPS, BGP, BOOT_DISABLE, DIV, DMA, HDMA1, HDMA2, HDMA3, HDMA4, HDMA5, IE, IF, JOYPAD, KEY0, KEY1, LCDC,
-    LY, LYC, NR10, NR11, NR12, NR13, NR14, NR21, NR22, NR23, NR24, NR30, NR31, NR32, NR33, NR34, NR41, NR42, NR43,
-    NR44, NR50, NR51, NR52, OBP0, OBP1, OCPD, OCPS, RP, SB, SC, SCX, SCY, STAT, SVBK, TAC, TIMA, TMA, VBK, WX, WY,
+    BCPD, BCPS, BGP, BOOT_DISABLE, DIV, DMA, HDMA1, HDMA2, HDMA3, HDMA4, HDMA5, IE, IF, JOYPAD, KEY0, KEY1, LCDC, LY,
+    LYC, NR10, NR11, NR12, NR13, NR14, NR21, NR22, NR23, NR24, NR30, NR31, NR32, NR33, NR34, NR41, NR42, NR43, NR44,
+    NR50, NR51, NR52, OBP0, OBP1, OCPD, OCPS, RP, SB, SC, SCX, SCY, STAT, SVBK, TAC, TIMA, TMA, VBK, WX, WY,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -109,8 +109,8 @@ impl Config {
 
     fn mode(rom: &[u8]) -> GCMode {
         match rom[CGB_FLAG as usize] {
-            0x80 => GCMode::Gbc,
-            0xC0 => GCMode::Enhanced,
+            0x80 => GCMode::Enhanced,
+            0xC0 => GCMode::Gbc,
             _ => GCMode::Dmg,
         }
     }
