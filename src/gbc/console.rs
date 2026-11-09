@@ -1,3 +1,6 @@
+use std::fs::File;
+use std::io::{self, BufWriter, Write};
+
 use crate::debugger::{Debugger, StopReason};
 
 use super::bus::Bus;
@@ -10,10 +13,13 @@ pub struct GameBoy {
     cpu: Cpu,
     bus: Bus,
     pub config: Config,
+    doctor: Option<BufWriter<File>>,
 }
 
 impl GameBoy {
-    pub fn new(rom: Vec<u8>, config: Config) -> Self { Self { cpu: Cpu::default(), bus: Bus::new(rom), config } }
+    pub fn new(rom: Vec<u8>, config: Config) -> Self {
+        Self { cpu: Cpu::default(), bus: Bus::new(rom), config, doctor: None }
+    }
 
     pub fn reset(&mut self) {
         self.bus.reset(&self.config.mode);
@@ -26,13 +32,31 @@ impl GameBoy {
             if let Some(r) = dbg.as_deref_mut().and_then(|d| d.check(self.cpu.pc())) {
                 return Some(r);
             }
-            let c = self.cpu.step(&mut self.bus);
-            self.bus.ticks(c);
+            self.log_doctor();
+            self.cpu.step(&mut self.bus);
             if let Some(r) = dbg.as_deref_mut().and_then(|d| d.check_accesses(self.bus.drain_accesses())) {
                 return Some(r);
             }
         }
         None
+    }
+
+    pub fn set_doctor(&mut self, path: &str) -> io::Result<()> {
+        self.doctor = Some(BufWriter::new(File::create(path)?));
+        self.bus.set_doctor(true);
+        Ok(())
+    }
+
+    fn log_doctor(&mut self) {
+        let Some(w) = self.doctor.as_mut() else { return };
+        let pc = self.cpu.pc();
+        let m = |o: u16| self.bus.read_internal(pc.wrapping_add(o));
+        let line =
+            format!("{} PCMEM:{:02X},{:02X},{:02X},{:02X}", self.cpu.registers().doctor(), m(0), m(1), m(2), m(3));
+        if let Err(e) = writeln!(w, "{line}") {
+            eprintln!("doctor log: {e}");
+            self.doctor = None;
+        }
     }
 
     pub const fn pixels(&self) -> &[u8] { self.bus.get_pixels() }

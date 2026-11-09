@@ -7,3 +7,6 @@ test-roms/
 
 gb-test-roms/
 test-roms/
+
+doctor.log
+gameboy-doctor/
