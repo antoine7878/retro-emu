@@ -23,10 +23,10 @@ pub struct CpuRegisters {
 }
 
 impl CpuRegisters {
-    pub const fn init(&mut self, mode: &GCMode) {
+    pub fn init(&mut self, mode: &GCMode) {
         let (af, bc, de, hl) = match mode {
-            GCMode::Dmg => (0x01B0, 0x0013, 0x00D8, 0x014D),
-            GCMode::Gbc | GCMode::Enhanced => (0x1180, 0x0000, 0xFF56, 0x000D),
+            GCMode::Dmg | GCMode::Enhanced => (0x01B0, 0x0013, 0x00D8, 0x014D),
+            GCMode::Gbc => (0x1180, 0x0000, 0xFF56, 0x000D),
         };
         self.set_af(af);
         self.set_bc(bc);
@@ -35,6 +35,7 @@ impl CpuRegisters {
         self.sp = 0xFFFE;
         self.pc = PROGRAM_START;
     }
+
     pub const fn get_a(&self) -> u8 { self.a }
     pub const fn set_a(&mut self, value: u8) { self.a = value; }
 
@@ -45,7 +46,7 @@ impl CpuRegisters {
     pub const fn get_hl(&self) -> u16 { Self::merge_reg(self.h, self.l) }
     pub const fn get_sp(&self) -> u16 { self.sp }
 
-    const fn split_reg(value: u16) -> (u8, u8) { (((value & 0xFF00) >> 8) as u8, (value & 0x00FF) as u8) }
+    const fn split_reg(value: u16) -> (u8, u8) { ((value >> 8) as u8, (value & 0x00FF) as u8) }
     pub const fn set_af(&mut self, value: u16) { (self.a, self.f) = Self::split_reg(value); }
     pub const fn set_bc(&mut self, value: u16) { (self.b, self.c) = Self::split_reg(value); }
     pub const fn set_de(&mut self, value: u16) { (self.d, self.e) = Self::split_reg(value); }
@@ -70,7 +71,11 @@ impl CpuRegisters {
     }
 
     pub const fn set_c(&mut self) { self.f |= 1 << CARRY_FLAG }
-    pub const fn set_h(&mut self) { self.f |= 1 << HALF_CARRY_FLAG }
+
+    pub const fn clear_n(&mut self) { self.f &= !(1 << SUB_FLAG) }
+    pub const fn clear_h(&mut self) { self.f &= !(1 << HALF_CARRY_FLAG) }
+
+    pub const fn toogle_c(&mut self) { self.f ^= 1 << CARRY_FLAG }
 
     pub const fn pc(&self) -> u16 { self.pc }
     pub const fn pc_mut(&mut self) -> &mut u16 { &mut self.pc }
@@ -135,6 +140,15 @@ impl CpuRegisters {
             R16Stk::HL => self.set_hl(value),
             R16Stk::AF => self.set_af(value & 0xFFF0),
         }
+    }
+}
+
+impl CpuRegisters {
+    pub fn doctor(&self) -> String {
+        format!(
+            "A:{:02X} F:{:02X} B:{:02X} C:{:02X} D:{:02X} E:{:02X} H:{:02X} L:{:02X} SP:{:04X} PC:{:04X}",
+            self.a, self.f, self.b, self.c, self.d, self.e, self.h, self.l, self.sp, self.pc
+        )
     }
 }
 
