@@ -11,7 +11,6 @@ mod instruction;
 mod interrupt;
 mod io_reg;
 mod joypad;
-mod keypad;
 mod link;
 mod memory_map;
 mod ppu;

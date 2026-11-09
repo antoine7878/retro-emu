@@ -1,8 +1,8 @@
 use super::bus::Bus;
 use super::config::GCMode;
-use super::memory_map::DIV;
 use super::flag::{FlagSpec, Flags};
 use super::instruction::{AluOp, Cond, Instruction, R8, R16, R16Mem, R16Stk, ShiftOp};
+use super::memory_map::DIV;
 use super::registers::CpuRegisters;
 use super::{alu, shift};
 
@@ -19,17 +19,21 @@ pub struct Cpu {
     power_mode: PowerMode,
     ime: bool,
     registers: CpuRegisters,
+    delay_ie: bool,
+    halt_bug: bool,
 }
 
 impl Cpu {
     pub fn reset(&mut self, mode: &GCMode) {
         self.registers.init(mode);
         self.ime = false;
+        self.delay_ie = false;
+        self.halt_bug = false;
         self.power_mode = PowerMode::default();
     }
 
-    pub fn step(&mut self, bus: &mut Bus) -> u8 {
-        let opcode = self.take_pc8(bus);
+    pub fn step(&mut self, bus: &mut Bus) {
+        let opcode = self.fetch_opcode(bus);
         let instruction = match opcode {
             0xCB => Instruction::prefix(self.take_pc8(bus)),
             _ => Instruction::decode(opcode),
@@ -37,17 +41,47 @@ impl Cpu {
         self.execute(instruction, bus)
     }
 
-    fn execute(&mut self, instruction: Instruction, bus: &mut Bus) -> u8 {
-        let mut taken = false;
+    fn fetch_opcode(&mut self, bus: &mut Bus) -> u8 {
+        let op = bus.read(self.pc());
+        if !std::mem::take(&mut self.halt_bug) {
+            *self.registers.pc_mut() = self.pc().wrapping_add(1);
+        }
+        op
+    }
+
+    pub fn handle_interrupts(&mut self, bus: &mut Bus) -> bool {
+        let pending = bus.pending_interrupt();
+        if self.power_mode == PowerMode::Halt {
+            if pending == 0 {
+                bus.tick();
+                return true;
+            }
+            self.power_mode = PowerMode::Normal;
+        }
+        if !self.ime || pending == 0 {
+            return false;
+        }
+        let int = pending.trailing_zeros() as u8;
+        bus.ack_interrupt(int);
+        self.ime = false;
+        self.delay_ie = false;
+        bus.tick();
+        self.push_stack(bus, self.pc());
+        *self.registers.pc_mut() = 0x40 + 8 * int as u16;
+        bus.tick();
+        true
+    }
+
+    fn execute(&mut self, instruction: Instruction, bus: &mut Bus) {
+        if std::mem::take(&mut self.delay_ie) {
+            self.ime = true
+        }
         match instruction {
             Instruction::Nop => (),
             Instruction::Stop => self.stop(bus),
-            Instruction::Halt => self.power_mode = PowerMode::Halt,
+            Instruction::Halt => self.halt(bus),
             Instruction::Di => self.ime = false,
-            Instruction::Ei => {
-                self.ime = true;
-                panic!("EI")
-            }
+            Instruction::Ei => self.delay_ie = true,
 
             Instruction::Ld(dst, src) => self.ld(bus, dst, src),
             Instruction::LdImm(r) => self.ldn8(bus, r),
@@ -60,24 +94,24 @@ impl Cpu {
             Instruction::LdAR16Mem(rm) => self.ldar16(bus, rm),
             Instruction::LdImm16(r) => self.ldn16(bus, r),
             Instruction::LdA16SP => self.lda16sp(bus),
-            Instruction::LdSpHl => self.ldsphl(),
+            Instruction::LdSpHl => self.ldsphl(bus),
             Instruction::LdHlSp8 => self.ldhlsp8(bus),
             Instruction::LdhAbsA => self.ldhabsa(bus),
             Instruction::LdhAAbs => self.ldhaabs(bus),
 
             Instruction::Alu(op, r) => self.alu(bus, op, r),
             Instruction::AluN(op) => self.alun(bus, op),
-            Instruction::AddHl(r) => self.addhl(r),
+            Instruction::AddHl(r) => self.addhl(bus, r),
             Instruction::AddSpImm => self.addspimm(bus),
             Instruction::Inc(r) => self.inc8(bus, r),
             Instruction::Dec(r) => self.dec8(bus, r),
-            Instruction::Inc16(r) => self.inc16(r),
-            Instruction::Dec16(r) => self.dec16(r),
+            Instruction::Inc16(r) => self.inc16(bus, r),
+            Instruction::Dec16(r) => self.dec16(bus, r),
 
-            Instruction::Jp(c) => taken = self.jp(bus, c),
-            Instruction::Jr(c) => taken = self.jr(bus, c),
-            Instruction::Call(c) => taken = self.call(bus, c),
-            Instruction::Ret(c) => taken = self.ret(bus, c),
+            Instruction::Jp(c) => self.jp(bus, c),
+            Instruction::Jr(c) => self.jr(bus, c),
+            Instruction::Call(c) => self.call(bus, c),
+            Instruction::Ret(c) => self.ret(bus, c),
             Instruction::JpHl => self.jphl(),
             Instruction::RetI => self.reti(bus),
             Instruction::Rst(vec) => self.rst(bus, vec as u16),
@@ -99,9 +133,8 @@ impl Cpu {
             Instruction::Res(i, r) => self.res(bus, i, r),
             Instruction::Set(i, r) => self.set(bus, i, r),
 
-            Instruction::Illegal(i) => panic!("Illegal instruction: {i:o}"),
+            Instruction::Illegal(i) => panic!("Illegal instruction: {i:#o}"),
         }
-        instruction.internal_cycle_count(taken)
     }
 
     // ----- Utils ------------------------------
@@ -157,6 +190,14 @@ impl Cpu {
         self.power_mode = PowerMode::Stop
     }
 
+    fn halt(&mut self, bus: &mut Bus) {
+        if !self.ime && bus.pending_interrupt() != 0 {
+            self.halt_bug = true;
+        } else {
+            self.power_mode = PowerMode::Halt;
+        }
+    }
+
     // ---- Load 8-bit ------------------------------
 
     fn ld(&mut self, bus: &mut Bus, dst: R8, src: R8) {
@@ -201,8 +242,9 @@ impl Cpu {
 
     fn ldr16a(&mut self, bus: &mut Bus, rm: R16Mem) {
         let r = R16::from(rm);
+        let addr = self.get_r16(r);
         let value = self.get_r8(bus, R8::A);
-        bus.write(self.get_r16(r), value);
+        bus.write(addr, value);
         self.update_r16mem(rm);
     }
 
@@ -234,15 +276,17 @@ impl Cpu {
         bus.write(addr.wrapping_add(1), (sp >> 8) as u8);
     }
 
-    fn ldsphl(&mut self) {
+    fn ldsphl(&mut self, bus: &mut Bus) {
         let value = self.get_r16(R16::HL);
         self.set_r16(R16::SP, value);
+        bus.tick();
     }
 
     fn ldhlsp8(&mut self, bus: &mut Bus) {
         let sp = self.get_r16(R16::SP);
-        let imm = self.take_pc8(bus);
-        let (result, flags) = alu::add16(sp, imm as u16, false);
+        let imm = self.take_pc8(bus) as i8;
+        bus.tick();
+        let (result, flags) = alu::add_sp_e8(sp, imm);
         self.set_r16(R16::HL, result);
         self.registers.set_flags(flags, ADD_SP);
     }
@@ -277,18 +321,20 @@ impl Cpu {
         self.registers.set_flags(flags, op.flag_spec());
     }
 
-    fn addhl(&mut self, r: R16) {
+    fn addhl(&mut self, bus: &mut Bus, r: R16) {
         let hl = self.get_r16(R16::HL);
         let r = self.get_r16(r);
         let (result, flags) = alu::add16(hl, r, false);
         self.set_r16(R16::HL, result);
         self.registers.set_flags(flags, ADD_HL);
+        bus.tick()
     }
 
     fn addspimm(&mut self, bus: &mut Bus) {
         let sp = self.get_r16(R16::SP);
-        let imm = self.take_pc8(bus) as u16;
-        let (result, flags) = alu::add16(sp, imm, false);
+        let imm = self.take_pc8(bus) as i8;
+        bus.ticks(2);
+        let (result, flags) = alu::add_sp_e8(sp, imm);
         self.set_r16(R16::SP, result);
         self.registers.set_flags(flags, ADD_SP);
     }
@@ -307,57 +353,61 @@ impl Cpu {
         self.registers.set_flags(flags, DEC);
     }
 
-    fn inc16(&mut self, r: R16) {
+    fn inc16(&mut self, bus: &mut Bus, r: R16) {
         let v = self.get_r16(r);
         let (result, flags) = alu::add16(v, 1, false);
         self.set_r16(r, result);
         self.registers.set_flags(flags, NOF);
+        bus.tick();
     }
 
-    fn dec16(&mut self, r: R16) {
+    fn dec16(&mut self, bus: &mut Bus, r: R16) {
         let v = self.get_r16(r);
         let (result, flags) = alu::sub16(v, 1, false);
         self.set_r16(r, result);
         self.registers.set_flags(flags, NOF);
+        bus.tick();
     }
 
     // ----- Jump ------------------------------
 
-    fn jp(&mut self, bus: &mut Bus, c: Option<Cond>) -> bool {
+    fn jp(&mut self, bus: &mut Bus, c: Option<Cond>) {
         let addr = self.take_pc16(bus);
         if !self.condition(c) {
-            return false;
+            return;
         }
         *self.registers.pc_mut() = addr;
-        true
+        bus.tick();
     }
 
-    fn jr(&mut self, bus: &mut Bus, c: Option<Cond>) -> bool {
+    fn jr(&mut self, bus: &mut Bus, c: Option<Cond>) {
         let offset = self.take_pc8(bus) as i8 as i32;
         if !self.condition(c) {
-            return false;
+            return;
         }
         *self.registers.pc_mut() = (self.pc() as i32).wrapping_add(offset) as u16;
-        true
+        bus.tick();
     }
 
     const fn jphl(&mut self) { *self.registers.pc_mut() = self.get_r16(R16::HL); }
 
-    fn call(&mut self, bus: &mut Bus, c: Option<Cond>) -> bool {
+    fn call(&mut self, bus: &mut Bus, c: Option<Cond>) {
         let addr = self.take_pc16(bus);
         if !self.condition(c) {
-            return false;
+            return;
         }
         self.rst(bus, addr);
-        true
     }
 
-    fn ret(&mut self, bus: &mut Bus, c: Option<Cond>) -> bool {
+    fn ret(&mut self, bus: &mut Bus, c: Option<Cond>) {
+        if c.is_some() {
+            bus.tick()
+        }
         if !self.condition(c) {
-            return false;
+            return;
         }
         *self.registers.pc_mut() = self.pop_stack(bus);
-        true
+        bus.tick();
     }
 
     fn reti(&mut self, bus: &mut Bus) {
@@ -376,6 +426,7 @@ impl Cpu {
     }
 
     fn push_stack(&mut self, bus: &mut Bus, value: u16) {
+        bus.tick();
         self.registers.dec_sp();
         bus.write(self.registers.get_sp(), (value >> 8) as u8);
         self.registers.dec_sp();
@@ -388,9 +439,9 @@ impl Cpu {
     }
 
     fn pop_stack(&mut self, bus: &mut Bus) -> u16 {
-        let hi = bus.read(self.registers.get_sp());
-        self.registers.inc_sp();
         let lo = bus.read(self.registers.get_sp());
+        self.registers.inc_sp();
+        let hi = bus.read(self.registers.get_sp());
         self.registers.inc_sp();
         (hi as u16) << 8 | (lo as u16)
     }
@@ -457,9 +508,17 @@ impl Cpu {
         self.registers.set_flags(flags, DAA);
     }
 
-    fn scf(&mut self) { self.registers.set_c() }
+    fn scf(&mut self) {
+        self.registers.clear_n();
+        self.registers.clear_h();
+        self.registers.set_c();
+    }
 
-    fn ccf(&mut self) { self.registers.set_h() }
+    fn ccf(&mut self) {
+        self.registers.clear_n();
+        self.registers.clear_h();
+        self.registers.toogle_c();
+    }
 
     // ----- Prefix ------------------------------
 
@@ -495,7 +554,9 @@ const DAA: FlagSpec = FlagSpec::znhc("R-0R");
 const CPL: FlagSpec = FlagSpec::znhc("-RR-");
 const DEC: FlagSpec = FlagSpec::znhc("R1R-");
 const INC: FlagSpec = FlagSpec::znhc("R0R-");
+
 const ADD_HL: FlagSpec = FlagSpec::znhc("-0RR");
+
 const ADD_SP: FlagSpec = FlagSpec::znhc("00RR");
 const RLCA: FlagSpec = FlagSpec::znhc("000R");
 // const CB_RLC: FlagSpec = FlagSpec::znhc("R00R");

@@ -95,7 +95,7 @@ impl Bus {
         if self.trace {
             self.accesses.push(MemAccess::read(addr, value));
         }
-        self.read_internal(addr)
+        value
     }
 
     pub fn write_internal(&mut self, addr: u16, value: u8) {

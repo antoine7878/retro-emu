@@ -1,4 +1,5 @@
-aw rw $FF01
-aw rw $FF44
-aw rw $FF45
+# aw rw SB
+# aw rw SC
+# ab $0100
+ab $DEF8
 l
