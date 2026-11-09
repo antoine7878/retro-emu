@@ -45,21 +45,27 @@ impl Cpu {
         let op = bus.read(self.pc());
         if !std::mem::take(&mut self.halt_bug) {
             *self.registers.pc_mut() = self.pc().wrapping_add(1);
+            crate::PC.store(self.pc(), std::sync::atomic::Ordering::Relaxed);
         }
         op
     }
 
-    pub fn handle_interrupts(&mut self, bus: &mut Bus) -> bool {
-        let pending = bus.pending_interrupt();
-        if self.power_mode == PowerMode::Halt {
-            if pending == 0 {
-                bus.tick();
-                return true;
-            }
-            self.power_mode = PowerMode::Normal;
-        }
-        if !self.ime || pending == 0 {
+    pub fn halted(&mut self, bus: &mut Bus) -> bool {
+        if self.power_mode != PowerMode::Halt {
             return false;
+        }
+        if bus.pending_interrupt() == 0 {
+            bus.tick();
+            return true;
+        }
+        self.power_mode = PowerMode::Normal;
+        false
+    }
+
+    pub fn dispatch_interrupt(&mut self, bus: &mut Bus) {
+        let pending = bus.pending_interrupt();
+        if !self.ime || pending == 0 {
+            return;
         }
         let int = pending.trailing_zeros() as u8;
         bus.ack_interrupt(int);
@@ -69,7 +75,6 @@ impl Cpu {
         self.push_stack(bus, self.pc());
         *self.registers.pc_mut() = 0x40 + 8 * int as u16;
         bus.tick();
-        true
     }
 
     fn execute(&mut self, instruction: Instruction, bus: &mut Bus) {

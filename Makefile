@@ -1,4 +1,4 @@
-ROM="./rscs/gb-test-roms/cpu_instrs/individual/02-interrupts.gb"
+ROM="./rscs/gb-test-roms/cpu_instrs/cpu_instrs.gb"
 LOG_FILE=doctor.log
 
 test:

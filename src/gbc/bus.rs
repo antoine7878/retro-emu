@@ -72,6 +72,7 @@ impl Bus {
             OAM_START..OAM_END => self.ppu.read(addr),
             NOT_START..NOT_END => 0xFF,
             LY if self.doctor => 0x90,
+            IF if self.doctor => self.interrupter.read(IF) & 0x1D,
             PPU_START..PPU_END | VBK => self.ppu.read(addr),
             DMA_START..DMA_END | PAL_START..PAL_END => self.ppu.read(addr),
             HRAM_START..HRAM_END => self.hram[(addr - HRAM_START) as usize],

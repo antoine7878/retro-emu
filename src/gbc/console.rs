@@ -29,11 +29,12 @@ impl GameBoy {
     pub fn run_frame(&mut self, mut dbg: Option<&mut Debugger>) -> Option<StopReason> {
         let start = self.bus.get_cycle_count();
         while self.bus.get_cycle_count() - start < CYCLES_PER_FRAME {
-            if !self.cpu.handle_interrupts(&mut self.bus) {
+            if !self.cpu.halted(&mut self.bus) {
                 if let Some(r) = dbg.as_deref_mut().and_then(|d| d.check(self.cpu.pc())) {
                     return Some(r);
                 }
                 self.log_doctor();
+                self.cpu.dispatch_interrupt(&mut self.bus);
                 self.cpu.step(&mut self.bus);
             }
             if let Some(r) = dbg.as_deref_mut().and_then(|d| d.check_accesses(self.bus.drain_accesses())) {
