@@ -13,7 +13,7 @@ use sdl2::{EventPump, Sdl};
 
 use crate::args::Args;
 use crate::debugger::{DebugAction, Debugger, PROMPT, StopReason};
-use crate::gbc::{CYCLES_PER_FRAME, GameBoy, HEIGHT, SCALE, WIDTH};
+use crate::gbc::{CYCLES_PER_FRAME, FRAME_RATE, GameBoy, HEIGHT, SCALE, WIDTH};
 use crate::prompt::{self, Prompt};
 
 struct FpsCounter {
@@ -58,7 +58,11 @@ pub struct Frontend {
     dbg: Option<Debugger>,
     terminal: Option<String>,
     fps: FpsCounter,
+    dirty: bool,
+    last_present: Instant,
 }
+
+const PRESENT_INTERVAL: Duration = Duration::from_nanos(1_000_000_000 / FRAME_RATE as u64);
 
 impl Frontend {
     pub fn new(args: Args, sdl: Sdl) -> Result<Self, Box<dyn Error>> {
@@ -83,6 +87,8 @@ impl Frontend {
             last_cmd,
             terminal,
             fps,
+            dirty: false,
+            last_present: Instant::now(),
         })
     }
 
@@ -197,12 +203,17 @@ impl Frontend {
     }
 
     fn draw(&mut self, game_boy: &mut GameBoy) -> Result<(), Box<dyn Error>> {
-        if game_boy.take_redraw() {
-            self.texture.update(None, game_boy.pixels(), WIDTH * 3)?;
-            self.canvas.copy(&self.texture, None, None)?;
-            self.canvas.present();
-            self.fps.presented += 1;
+        self.dirty |= game_boy.take_redraw();
+        let throttled = game_boy.config.frame_time.is_none_or(|t| t < PRESENT_INTERVAL);
+        if !self.dirty || (throttled && self.last_present.elapsed() < PRESENT_INTERVAL) {
+            return Ok(());
         }
+        self.texture.update(None, game_boy.pixels(), WIDTH * 3)?;
+        self.canvas.copy(&self.texture, None, None)?;
+        self.canvas.present();
+        self.fps.presented += 1;
+        self.dirty = false;
+        self.last_present = Instant::now();
         Ok(())
     }
 

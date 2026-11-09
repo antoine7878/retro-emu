@@ -355,6 +355,16 @@ impl Ppu {
             self.ly.write_raw(0);
             return;
         }
+        let next = match self.mode {
+            PpuMode::OamScan => 80,
+            PpuMode::Drawing => 252,
+            PpuMode::HBlank | PpuMode::VBlank => 456,
+        };
+        if self.dot + (dots as u16) < next {
+            self.dot += dots as u16;
+            self.update_stat_line(ifl);
+            return;
+        }
         for _ in 0..dots {
             self.tick(ifl);
         }
