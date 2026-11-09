@@ -133,7 +133,7 @@ impl CpuRegisters {
             R16Stk::BC => self.set_bc(value),
             R16Stk::DE => self.set_de(value),
             R16Stk::HL => self.set_hl(value),
-            R16Stk::AF => self.set_af(value),
+            R16Stk::AF => self.set_af(value & 0xFFF0),
         }
     }
 }
