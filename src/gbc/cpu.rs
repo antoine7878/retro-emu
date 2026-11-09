@@ -35,8 +35,8 @@ impl Cpu {
     pub fn step(&mut self, bus: &mut Bus) {
         let opcode = self.fetch_opcode(bus);
         let instruction = match opcode {
-            0xCB => Instruction::prefix(self.take_pc8(bus)),
-            _ => Instruction::decode(opcode),
+            0xCB => Instruction::lookup_prefix(self.take_pc8(bus)),
+            _ => Instruction::lookup(opcode),
         };
         self.execute(instruction, bus)
     }

@@ -38,8 +38,6 @@ impl Link {
     }
 
     fn transfer(&mut self) {
-        eprint!("{}", self.buffer.read() as char);
-        stdout().flush().unwrap();
         self.buffer.write(0xFF);
         self.ctrl.clear(7);
         self.ctrl.clear(0);

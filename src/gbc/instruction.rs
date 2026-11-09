@@ -262,6 +262,29 @@ impl Instruction {
         }
     }
 
+    const MAIN: [Self; 256] = {
+        let mut table = [Self::Nop; 256];
+        let mut op = 0;
+        while op < 256 {
+            table[op] = Self::decode(op as u8);
+            op += 1;
+        }
+        table
+    };
+
+    const PREFIX: [Self; 256] = {
+        let mut table = [Self::Nop; 256];
+        let mut op = 0;
+        while op < 256 {
+            table[op] = Self::prefix(op as u8);
+            op += 1;
+        }
+        table
+    };
+
+    pub const fn lookup(op_code: u8) -> Self { Self::MAIN[op_code as usize] }
+    pub const fn lookup_prefix(op_code: u8) -> Self { Self::PREFIX[op_code as usize] }
+
     pub const fn shape(&self) -> (u8, u8) {
         match self {
             Instruction::Nop => (1, 4),
