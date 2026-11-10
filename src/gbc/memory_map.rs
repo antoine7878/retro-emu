@@ -1,95 +1,10 @@
-pub fn memory_location(addr: u16) -> &'static str {
-    match addr {
-        ROM_START..ROM_END => "ROM",
-        VRAM_START..VRAM_END => "VRAM",
-        SRAM_START..SRAM_END => "SRAM",
-        WRAM_START..WRAM_END => "WRAM",
-        ECHO_START..ECHO_END => "ECHO",
-        OAM_START..OAM_END => "OAM",
-        NOT_START..NOT_END => "UNUSABLE",
-        JOYPAD => "JOYP",
-        SB => "SB",
-        SC => "SC",
-        DIV => "DIV",
-        TIMA => "TIMA",
-        TMA => "TMA",
-        TAC => "TAC",
-        IF => "IF",
-        NR10 => "NR10",
-        NR11 => "NR11",
-        NR12 => "NR12",
-        NR13 => "NR13",
-        NR14 => "NR14",
-        NR21 => "NR21",
-        NR22 => "NR22",
-        NR23 => "NR23",
-        NR24 => "NR24",
-        NR30 => "NR30",
-        NR31 => "NR31",
-        NR32 => "NR32",
-        NR33 => "NR33",
-        NR34 => "NR34",
-        NR41 => "NR41",
-        NR42 => "NR42",
-        NR43 => "NR43",
-        NR44 => "NR44",
-        NR50 => "NR50",
-        NR51 => "NR51",
-        NR52 => "NR52",
-        WAVE_START..WAVE_END => "WAVE",
-        LCDC => "LCDC",
-        STAT => "STAT",
-        SCY => "SCY",
-        SCX => "SCX",
-        LY => "LY",
-        LYC => "LYC",
-        DMA => "DMA",
-        BGP => "BGP",
-        OBP0 => "OBP0",
-        OBP1 => "OBP1",
-        WY => "WY",
-        WX => "WX",
-        KEY0 => "KEY0",
-        KEY1 => "KEY1",
-        VBK => "VBK",
-        BOOT_DISABLE => "BOOT",
-        HDMA1 => "HDMA1",
-        HDMA2 => "HDMA2",
-        HDMA3 => "HDMA3",
-        HDMA4 => "HDMA4",
-        HDMA5 => "HDMA5",
-        RP => "RP",
-        BCPS => "BCPS",
-        BCPD => "BCPD",
-        OCPS => "OCPS",
-        OCPD => "OCPD",
-        OPRI => "OPRI",
-        SVBK => "SVBK",
-        PCM12 => "PCM12",
-        PCM34 => "PCM34",
-        HRAM_START..HRAM_END => "HRAM",
-        IE => "IE",
-        _ => "IO",
-    }
-}
-
-pub fn memory_range(name: &str) -> Option<(u16, u16)> {
-    if name.eq_ignore_ascii_case("IO") {
-        return None;
-    }
-    let mut addrs = (0..=u16::MAX).filter(|&addr| memory_location(addr).eq_ignore_ascii_case(name));
-    let start = addrs.next()?;
-    Some((start, addrs.last().unwrap_or(start)))
-}
-
 // ----- Memory Size --------------------
 
-pub const SRAM_SIZE: usize = (SRAM_END - SRAM_START) as usize;
 pub const WRAM_SIZE: usize = (WRAM_END - WRAM_START) as usize;
 pub const HRAM_SIZE: usize = (HRAM_END - HRAM_START) as usize;
 pub const VRAM_SIZE: usize = (VRAM_END - VRAM_START) as usize;
 pub const OAM_SIZE: usize = (OAM_END - OAM_START) as usize;
-pub const CART_RAM_BANK_SIZE: usize = 1 << 13;
+pub const CART_RAM_BANK_SIZE: usize = 1 << 14;
 pub const CART_ROM_BANK_SIZE: usize = 1 << 13;
 
 // ----- Memory Map --------------------
@@ -220,3 +135,87 @@ pub const KEY1: u16 = 0xFF4D;
 pub const BOOT_DISABLE: u16 = 0xFF50;
 pub const RP: u16 = 0xFF56;
 pub const SVBK: u16 = 0xFF70;
+
+pub fn memory_range(name: &str) -> Option<(u16, u16)> {
+    if name.eq_ignore_ascii_case("IO") {
+        return None;
+    }
+    let mut addrs = (0..=u16::MAX).filter(|&addr| memory_location(addr).eq_ignore_ascii_case(name));
+    let start = addrs.next()?;
+    Some((start, addrs.last().unwrap_or(start)))
+}
+
+pub fn memory_location(addr: u16) -> &'static str {
+    match addr {
+        ROM_START..ROM_END => "ROM",
+        VRAM_START..VRAM_END => "VRAM",
+        SRAM_START..SRAM_END => "SRAM",
+        WRAM_START..WRAM_END => "WRAM",
+        ECHO_START..ECHO_END => "ECHO",
+        OAM_START..OAM_END => "OAM",
+        NOT_START..NOT_END => "UNUSABLE",
+        JOYPAD => "JOYP",
+        SB => "SB",
+        SC => "SC",
+        DIV => "DIV",
+        TIMA => "TIMA",
+        TMA => "TMA",
+        TAC => "TAC",
+        IF => "IF",
+        NR10 => "NR10",
+        NR11 => "NR11",
+        NR12 => "NR12",
+        NR13 => "NR13",
+        NR14 => "NR14",
+        NR21 => "NR21",
+        NR22 => "NR22",
+        NR23 => "NR23",
+        NR24 => "NR24",
+        NR30 => "NR30",
+        NR31 => "NR31",
+        NR32 => "NR32",
+        NR33 => "NR33",
+        NR34 => "NR34",
+        NR41 => "NR41",
+        NR42 => "NR42",
+        NR43 => "NR43",
+        NR44 => "NR44",
+        NR50 => "NR50",
+        NR51 => "NR51",
+        NR52 => "NR52",
+        WAVE_START..WAVE_END => "WAVE",
+        LCDC => "LCDC",
+        STAT => "STAT",
+        SCY => "SCY",
+        SCX => "SCX",
+        LY => "LY",
+        LYC => "LYC",
+        DMA => "DMA",
+        BGP => "BGP",
+        OBP0 => "OBP0",
+        OBP1 => "OBP1",
+        WY => "WY",
+        WX => "WX",
+        KEY0 => "KEY0",
+        KEY1 => "KEY1",
+        VBK => "VBK",
+        BOOT_DISABLE => "BOOT",
+        HDMA1 => "HDMA1",
+        HDMA2 => "HDMA2",
+        HDMA3 => "HDMA3",
+        HDMA4 => "HDMA4",
+        HDMA5 => "HDMA5",
+        RP => "RP",
+        BCPS => "BCPS",
+        BCPD => "BCPD",
+        OCPS => "OCPS",
+        OCPD => "OCPD",
+        OPRI => "OPRI",
+        SVBK => "SVBK",
+        PCM12 => "PCM12",
+        PCM34 => "PCM34",
+        HRAM_START..HRAM_END => "HRAM",
+        IE => "IE",
+        _ => "IO",
+    }
+}

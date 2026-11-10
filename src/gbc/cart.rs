@@ -40,7 +40,7 @@ pub enum Addon {
 }
 
 pub struct CartridgeHeader {
-    rom_bank_count: u8,
+    rom_bank_count: u16,
     ram_bank_count: u8,
     rom_name: String,
     cgb_mode: CGMode,
@@ -59,7 +59,6 @@ impl CartridgeHeader {
     }
 
     fn rom_name(rom: &[u8]) -> String { rom[TITLE_START..TITLE_END].iter().map(|&byte| byte as char).collect() }
-    fn manu_code(rom: &[u8]) -> String { rom[MANU_START..MANU_END].iter().map(|&byte| byte as char).collect() }
 
     fn mode(rom: &[u8]) -> CGMode {
         match rom[CGB_FLAG] {
@@ -105,7 +104,7 @@ impl CartridgeHeader {
         (kind, addons.iter().copied().collect())
     }
 
-    fn rom_bank_count(rom: &[u8]) -> u8 {
+    fn rom_bank_count(rom: &[u8]) -> u16 {
         match rom[ROM_SIZE_FLAG] {
             s @ (0x00..0x08) => 1 << (s + 1),
             0x52 => 72,

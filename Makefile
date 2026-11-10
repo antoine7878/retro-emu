@@ -1,4 +1,4 @@
-ROM="./rscs/gb-test-roms/cpu_instrs/cpu_instrs.gb"
+ROM="./rscs/gb-test-roms/instr_timing/instr_timing.gb"
 
 test:
 	cargo run --release -- $(ROM) -t 0
