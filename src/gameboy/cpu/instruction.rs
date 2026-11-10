@@ -150,132 +150,88 @@ pub enum Instruction {
 
 impl Instruction {
     pub const fn decode(op_code: u8) -> Self {
+        let (mi, lo) = Self::milo(op_code);
         match op_code {
-            0o000..0o100 => Self::block0(op_code),
-            0o100..0o200 => Self::block1(op_code),
-            0o200..0o300 => Self::block2(op_code),
-            0o300.. => Self::block3(op_code),
+            0o000 => Instruction::Nop,
+            0o010 => Instruction::LdA16SP,
+            0o020 => Instruction::Stop,
+            0o030 => Instruction::Jr(None),
+            0o040 | 0o050 | 0o060 | 0o070 => Instruction::Jr(Some(Cond::oct(mi))),
+
+            0o001 | 0o021 | 0o041 | 0o061 => Instruction::LdImm16(R16::oct(mi / 2)),
+            0o011 | 0o031 | 0o051 | 0o071 => Instruction::AddHl(R16::oct(mi / 2)),
+
+            0o002 | 0o022 | 0o042 | 0o062 => Instruction::LdR16MemA(R16Mem::oct(mi / 2)),
+            0o012 | 0o032 | 0o052 | 0o072 => Instruction::LdAR16Mem(R16Mem::oct(mi / 2)),
+
+            0o003 | 0o023 | 0o043 | 0o063 => Instruction::Inc16(R16::oct(mi / 2)),
+            0o013 | 0o033 | 0o053 | 0o073 => Instruction::Dec16(R16::oct(mi / 2)),
+
+            0o004 | 0o014 | 0o024 | 0o034 | 0o044 | 0o054 | 0o064 | 0o074 => Instruction::Inc(R8::oct(mi)),
+            0o005 | 0o015 | 0o025 | 0o035 | 0o045 | 0o055 | 0o065 | 0o075 => Instruction::Dec(R8::oct(mi)),
+            0o006 | 0o016 | 0o026 | 0o036 | 0o046 | 0o056 | 0o066 | 0o076 => Instruction::LdImm(R8::oct(mi)),
+
+            0o007 => Instruction::Rlca,
+            0o017 => Instruction::Rrca,
+            0o027 => Instruction::Rla,
+            0o037 => Instruction::Rra,
+            0o047 => Instruction::Daa,
+            0o057 => Instruction::Cpl,
+            0o067 => Instruction::Scf,
+            0o077 => Instruction::Ccf,
+
+            0o166 => Instruction::Halt,
+            0o100..0o166 | 0o167..0o200 => Instruction::Ld(R8::oct(mi), R8::oct(lo)),
+
+            0o200..0o300 => Instruction::Alu(AluOp::oct(mi), R8::oct(lo)),
+
+            0o300 | 0o310 | 0o320 | 0o330 => Instruction::Ret(Some(Cond::oct(mi))),
+            0o340 => Instruction::LdhImmA,
+            0o350 => Instruction::AddSpImm,
+            0o360 => Instruction::LdhAImm,
+            0o370 => Instruction::LdHlSp8,
+
+            0o301 | 0o321 | 0o341 | 0o361 => Instruction::Pop(R16Stk::oct(mi / 2)),
+            0o311 => Instruction::Ret(None),
+            0o331 => Instruction::RetI,
+            0o351 => Instruction::JpHl,
+            0o371 => Instruction::LdSpHl,
+
+            0o302 | 0o312 | 0o322 | 0o332 => Instruction::Jp(Some(Cond::oct(mi))),
+            0o342 => Instruction::LdhCA,
+            0o352 => Instruction::LdhAbsA,
+            0o362 => Instruction::LdhAC,
+            0o372 => Instruction::LdhAAbs,
+
+            0o303 => Instruction::Jp(None),
+            0o313 => Self::prefix(op_code),
+            0o363 => Instruction::Di,
+            0o373 => Instruction::Ei,
+
+            0o304 | 0o314 | 0o324 | 0o334 => Instruction::Call(Some(Cond::oct(mi))),
+            0o305 | 0o325 | 0o345 | 0o365 => Instruction::Push(R16Stk::oct(mi / 2)),
+            0o315 => Instruction::Call(None),
+
+            0o306 | 0o316 | 0o326 | 0o336 | 0o346 | 0o356 | 0o366 | 0o376 => Instruction::AluN(AluOp::oct(mi)),
+            0o307 | 0o317 | 0o327 | 0o337 | 0o347 | 0o357 | 0o367 | 0o377 => Instruction::Rst(op_code & 0o070),
+
+            0o323 | 0o333 | 0o343 | 0o353 | 0o344 | 0o354 | 0o364 | 0o374 | 0o335 | 0o355 | 0o375 => {
+                Instruction::Illegal(op_code)
+            }
         }
     }
 
     const fn milo(op_code: u8) -> (u8, u8) { ((op_code & 0o070) >> 3, op_code & 0o007) }
 
-    const fn block0(op_code: u8) -> Self {
-        match Self::milo(op_code) {
-            (0, 0) => Instruction::Nop,
-            (1, 0) => Instruction::LdA16SP,
-            (2, 0) => Instruction::Stop,
-            (3, 0) => Instruction::Jr(None),
-            (c, 0) => Instruction::Jr(Some(Cond::oct(c))),
-
-            (r @ (0 | 2 | 4 | 6), 1) => Instruction::LdImm16(R16::oct(r >> 1)),
-            (r @ (1 | 3 | 5 | 7), 1) => Instruction::AddHl(R16::oct((r - 1) >> 1)),
-
-            (r @ (0 | 2 | 4 | 6), 2) => Instruction::LdR16MemA(R16Mem::oct(r >> 1)),
-            (r @ (1 | 3 | 5 | 7), 2) => Instruction::LdAR16Mem(R16Mem::oct((r - 1) >> 1)),
-
-            (r @ (0 | 2 | 4 | 6), 3) => Instruction::Inc16(R16::oct(r >> 1)),
-            (r @ (1 | 3 | 5 | 7), 3) => Instruction::Dec16(R16::oct((r - 1) >> 1)),
-
-            (r, 4) => Instruction::Inc(R8::oct(r)),
-            (r, 5) => Instruction::Dec(R8::oct(r)),
-            (r, 6) => Instruction::LdImm(R8::oct(r)),
-            (0, 7) => Instruction::Rlca,
-            (1, 7) => Instruction::Rrca,
-            (2, 7) => Instruction::Rla,
-            (3, 7) => Instruction::Rra,
-            (4, 7) => Instruction::Daa,
-            (5, 7) => Instruction::Cpl,
-            (6, 7) => Instruction::Scf,
-            (7, 7) => Instruction::Ccf,
-            _ => Instruction::Illegal(op_code),
-        }
-    }
-
-    const fn block1(op_code: u8) -> Self {
-        match Self::milo(op_code) {
-            (6, 6) => Instruction::Halt,
-            (dst @ 0..8, src @ 0..8) => Instruction::Ld(R8::oct(dst), R8::oct(src)),
-            _ => Instruction::Illegal(op_code),
-        }
-    }
-
-    const fn block2(op_code: u8) -> Self {
-        match Self::milo(op_code) {
-            (op @ 0..8, r @ 0..8) => Instruction::Alu(AluOp::oct(op), R8::oct(r)),
-            _ => Instruction::Illegal(op_code),
-        }
-    }
-
-    const fn block3(op_code: u8) -> Self {
-        match Self::milo(op_code) {
-            (c @ 0..4, 0) => Instruction::Ret(Some(Cond::oct(c))),
-            (4, 0) => Instruction::LdhImmA,
-            (5, 0) => Instruction::AddSpImm,
-            (6, 0) => Instruction::LdhAImm,
-            (7, 0) => Instruction::LdHlSp8,
-
-            (1, 1) => Instruction::Ret(None),
-            (3, 1) => Instruction::RetI,
-            (5, 1) => Instruction::JpHl,
-            (7, 1) => Instruction::LdSpHl,
-            (r @ (0 | 2 | 4 | 6), 1) => Instruction::Pop(R16Stk::oct(r >> 1)),
-
-            (o @ 0..4, 2) => Instruction::Jp(Some(Cond::oct(o))),
-            (4, 2) => Instruction::LdhCA,
-            (5, 2) => Instruction::LdhAbsA,
-            (6, 2) => Instruction::LdhAC,
-            (7, 2) => Instruction::LdhAAbs,
-
-            (0, 3) => Instruction::Jp(None),
-            (1, 3) => Self::prefix(op_code),
-            (6, 3) => Instruction::Di,
-            (7, 3) => Instruction::Ei,
-
-            (c @ 0..4, 4) => Instruction::Call(Some(Cond::oct(c))),
-            (r @ (0 | 2 | 4 | 6), 5) => Instruction::Push(R16Stk::oct(r >> 1)),
-            (1, 5) => Instruction::Call(None),
-
-            (op, 6) => Instruction::AluN(AluOp::oct(op)),
-
-            (j, 7) => Instruction::Rst(j << 3),
-            _ => Instruction::Illegal(op_code),
-        }
-    }
-
     pub const fn prefix(op_code: u8) -> Self {
         let (mi, lo) = Self::milo(op_code);
-        match (op_code >> 6, mi, lo) {
-            (0, o @ 0..8, r @ 0..8) => Instruction::Shift(ShiftOp::oct(o), R8::oct(r)),
-            (1, i @ 0..8, r @ 0..8) => Instruction::Bit(i, R8::oct(r)),
-            (2, i @ 0..8, r @ 0..8) => Instruction::Res(i, R8::oct(r)),
-            (3, i @ 0..8, r @ 0..8) => Instruction::Set(i, R8::oct(r)),
-            _ => Instruction::Illegal(op_code),
+        match op_code {
+            0o000..0o100 => Instruction::Shift(ShiftOp::oct(mi), R8::oct(lo)),
+            0o100..0o200 => Instruction::Bit(mi, R8::oct(lo)),
+            0o200..0o300 => Instruction::Res(mi, R8::oct(lo)),
+            0o300.. => Instruction::Set(mi, R8::oct(lo)),
         }
     }
-
-    const MAIN: [Self; 256] = {
-        let mut table = [Self::Nop; 256];
-        let mut op = 0;
-        while op < 256 {
-            table[op] = Self::decode(op as u8);
-            op += 1;
-        }
-        table
-    };
-
-    const PREFIX: [Self; 256] = {
-        let mut table = [Self::Nop; 256];
-        let mut op = 0;
-        while op < 256 {
-            table[op] = Self::prefix(op as u8);
-            op += 1;
-        }
-        table
-    };
-
-    pub const fn lookup(op_code: u8) -> Self { Self::MAIN[op_code as usize] }
-    pub const fn lookup_prefix(op_code: u8) -> Self { Self::PREFIX[op_code as usize] }
 
     pub const fn shape(&self) -> (u8, u8) {
         match self {
