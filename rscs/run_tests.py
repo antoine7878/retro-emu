@@ -1,0 +1,111 @@
+#!/usr/bin/env python3
+
+import subprocess
+import sys
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+from typing import IO
+
+ROOT = Path(__file__).resolve().parent.parent
+TESTS = ROOT / "rscs" / "gb-test-roms"
+BIN = ROOT / "target" / "release" / "retro_emu"
+ROMS = [
+    "halt_bug.gb",
+    "instr_timing/instr_timing.gb",
+    "interrupt_time/interrupt_time.gb",
+    "cpu_instrs/cpu_instrs.gb",
+    "cpu_instrs/individual/01-special.gb",
+    "cpu_instrs/individual/02-interrupts.gb",
+    "cpu_instrs/individual/03-op sp,hl.gb",
+    "cpu_instrs/individual/04-op r,imm.gb",
+    "cpu_instrs/individual/05-op rp.gb",
+    "cpu_instrs/individual/06-ld r,r.gb",
+    "cpu_instrs/individual/07-jr,jp,call,ret,rst.gb",
+    "cpu_instrs/individual/08-misc instrs.gb",
+    "cpu_instrs/individual/09-op r,r.gb",
+    "cpu_instrs/individual/10-bit ops.gb",
+    "cpu_instrs/individual/11-op a,(hl).gb",
+    "mem_timing/mem_timing.gb",
+    "mem_timing/individual/01-read_timing.gb",
+    "mem_timing/individual/02-write_timing.gb",
+    "mem_timing/individual/03-modify_timing.gb",
+    "mem_timing-2/mem_timing.gb",
+    "mem_timing-2/rom_singles/01-read_timing.gb",
+    "mem_timing-2/rom_singles/02-write_timing.gb",
+    "mem_timing-2/rom_singles/03-modify_timing.gb",
+    "oam_bug/oam_bug.gb",
+    "oam_bug/rom_singles/1-lcd_sync.gb",
+    "oam_bug/rom_singles/2-causes.gb",
+    "oam_bug/rom_singles/3-non_causes.gb",
+    "oam_bug/rom_singles/4-scanline_timing.gb",
+    "oam_bug/rom_singles/5-timing_bug.gb",
+    "oam_bug/rom_singles/6-timing_no_bug.gb",
+    "oam_bug/rom_singles/7-timing_effect.gb",
+    "oam_bug/rom_singles/8-instr_effect.gb",
+]
+TIMEOUT = 1
+JOBS = 10
+
+
+def run(rom: Path) -> tuple[str, str]:
+    proc = subprocess.Popen(
+        [BIN, rom, "-t", "0", "-s"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+    )
+    out = bytearray()
+    stdout = proc.stdout
+    assert stdout is not None
+
+    def reader(stream: IO[bytes]):
+        while b := stream.read(1):
+            out.extend(b)
+
+    t = threading.Thread(target=reader, args=(stdout,), daemon=True)
+    t.start()
+    deadline = time.monotonic() + TIMEOUT
+    status = "TIMEOUT"
+    while time.monotonic() < deadline:
+        text = out.decode(errors="replace")
+        if "Passed" in text:
+            status = "PASS"
+            break
+        if "Failed" in text:
+            time.sleep(0.2)
+            status = "FAIL"
+            break
+        if proc.poll() is not None:
+            t.join(0.5)
+            status = "CRASH"
+            break
+        time.sleep(0.05)
+    proc.kill()
+    proc.wait()
+    return status, out.decode(errors="replace").strip()
+
+
+def main():
+    subprocess.run(["cargo", "build", "--release"], cwd=ROOT, check=True)
+
+    roms = [TESTS / r for r in ROMS]
+    with ThreadPoolExecutor(JOBS) as ex:
+        results = list(ex.map(run, roms))
+
+    passed = 0
+    for rom, (status, out) in zip(roms, results):
+        passed += status == "PASS"
+        print(f"{status:8} {rom.relative_to(TESTS)}")
+        if status != "PASS":
+            print(
+                "    " + out.replace("\n", "\n    ")
+                if out
+                else "    <no serial output>"
+            )
+    print(f"\n{passed}/{len(roms)} passed")
+    sys.exit(passed != len(roms))
+
+
+if __name__ == "__main__":
+    main()

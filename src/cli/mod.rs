@@ -14,6 +14,7 @@ pub struct Args {
     pub debug: bool,
     pub debug_init_file: Option<String>,
     pub max_fps: u32,
+    pub serial_print: bool,
     argv: vec::IntoIter<String>,
 }
 
@@ -27,6 +28,7 @@ impl ArgParser for Args {
     fn flag(&mut self, c: char, it: &mut Chars) -> Result<(), ArgError> {
         match c {
             'g' => self.debug = true,
+            's' => self.serial_print = true,
             'f' => self.debug_init_file = self.value(it, 'f')?,
             't' => {
                 let s: String = self.value(it, 't')?;
@@ -41,7 +43,7 @@ impl ArgParser for Args {
 
 impl Default for Args {
     fn default() -> Self {
-        Self { infiles: Vec::default(), debug: false, argv: argv(), debug_init_file: None, max_fps: FRAME_RATE }
+        Self { infiles: Vec::default(), debug: false, argv: argv(), debug_init_file: None, max_fps: FRAME_RATE, serial_print: false }
     }
 }
 
@@ -68,7 +70,7 @@ impl Args {
     }
 
     pub fn help() {
-        eprintln!("usage: retro_emu rom.gb [-f debuf_file] [-t max_fps (0: unlimited)] [-gh]");
+        eprintln!("usage: retro_emu rom.gb [-f debuf_file] [-t max_fps (0: unlimited)] [-gsh]");
         exit(0);
     }
 }

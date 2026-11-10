@@ -156,6 +156,8 @@ impl Bus {
     pub const fn get_pixels(&self) -> &[u8] { self.ppu.get_pixels() }
     pub fn take_redraw(&mut self) -> bool { self.ppu.take_redraw() }
     pub fn set_trace(&mut self, on: bool) { self.trace = on; }
+
+    pub fn set_serial_print(&mut self, on: bool) { self.link.set_print(on); }
     pub fn drain_accesses(&mut self) -> std::vec::Drain<'_, MemAccess> { self.accesses.drain(..) }
     pub fn cartridge(&self) -> &Cartridge { &self.cart }
 }

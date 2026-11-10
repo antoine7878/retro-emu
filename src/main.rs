@@ -24,7 +24,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     let sdl = sdl2::init()?;
     let rom_path = args.infiles[0].as_str();
     let rom = fs::read(rom_path).map_err(|e| format!("{rom_path}: {e}"))?;
-    let config = Config::new(args.max_fps)?;
+    let config = Config::new(args.max_fps, args.serial_print)?;
     let mut gb = GameBoy::new(config);
     gb.reset(rom);
     let mut frontend = Frontend::new(args, sdl)?;

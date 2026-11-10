@@ -16,14 +16,15 @@ pub struct Config {
     pub _rng_seed: u32,
     pub mode: ConsoleType,
     pub frame_time: Option<Duration>,
+    pub serial_print: bool,
 }
 
 impl Config {
-    pub fn new(max_fps: u32) -> Result<Self, Box<dyn Error>> {
+    pub fn new(max_fps: u32, serial_print: bool) -> Result<Self, Box<dyn Error>> {
         let _rng_seed = SystemTime::now().duration_since(UNIX_EPOCH)?.subsec_nanos();
         let mode = ConsoleType::Dmg;
         let frame_time = (max_fps > 0).then(|| Duration::from_secs(1) / max_fps);
-        Ok(Self { _rng_seed, mode, frame_time })
+        Ok(Self { _rng_seed, mode, frame_time, serial_print })
     }
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

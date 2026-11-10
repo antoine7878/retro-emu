@@ -13,7 +13,11 @@ pub struct GameBoy {
 }
 
 impl GameBoy {
-    pub fn new(config: Config) -> Self { Self { cpu: Cpu::default(), bus: Bus::default(), config } }
+    pub fn new(config: Config) -> Self {
+        let mut bus = Bus::default();
+        bus.set_serial_print(config.serial_print);
+        Self { cpu: Cpu::default(), bus, config }
+    }
 
     pub fn reset(&mut self, rom: Vec<u8>) {
         self.bus.reset(&self.config.mode, rom);
