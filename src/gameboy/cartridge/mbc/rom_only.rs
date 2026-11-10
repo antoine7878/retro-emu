@@ -24,6 +24,8 @@ impl MBC for RomOnly {
 
     fn write(&mut self, addr: u16, value: u8) {
         let Some(ram) = &mut self.ram else { return };
-        ram[(addr - SRAM_START) as usize] = value;
+        if matches!(addr, SRAM_START..SRAM_END) {
+            ram[(addr - SRAM_START) as usize] = value;
+        }
     }
 }

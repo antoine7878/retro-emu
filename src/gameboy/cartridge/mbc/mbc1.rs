@@ -65,8 +65,8 @@ impl Mbc1 {
     }
 
     fn selected_rom_bank(&self, addr: u16) -> usize {
-        let b1 = self.bank1.read();
-        let b2 = self.bank2.read();
+        let b1 = self.bank1.read() & 0x1F;
+        let b2 = self.bank2.read() & 0x03;
         let bank = match (self.banking_mode, addr) {
             (0, ROM_START..ROM_HALF) => 0,
             (1, ROM_START..ROM_HALF) => b2 << 5,
@@ -80,7 +80,7 @@ impl Mbc1 {
     fn selected_ram_bank(&self) -> usize {
         let bank = match self.banking_mode {
             0 => 0,
-            1 => self.bank2.read(),
+            1 => self.bank2.read() & 0x03,
             _ => unreachable!(),
         };
         bank as usize & (self.ram_bank_count - 1)

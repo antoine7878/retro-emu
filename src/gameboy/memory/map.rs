@@ -4,8 +4,8 @@ pub const WRAM_SIZE: usize = (WRAM_END - WRAM_START) as usize;
 pub const HRAM_SIZE: usize = (HRAM_END - HRAM_START) as usize;
 pub const VRAM_SIZE: usize = (VRAM_END - VRAM_START) as usize;
 pub const OAM_SIZE: usize = (OAM_END - OAM_START) as usize;
-pub const CART_RAM_BANK_SIZE: usize = 1 << 14;
-pub const CART_ROM_BANK_SIZE: usize = 1 << 13;
+pub const CART_RAM_BANK_SIZE: usize = 1 << 13;
+pub const CART_ROM_BANK_SIZE: usize = 1 << 14;
 
 // ----- Memory Map --------------------
 
