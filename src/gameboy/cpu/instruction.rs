@@ -6,7 +6,6 @@ pub enum R8 { B, C, D, E, H, L, HlInd, A }
 impl R8 {
     const ALL: [Self; 8] = [Self::B, Self::C, Self::D, Self::E, Self::H, Self::L, Self::HlInd, Self::A];
     const FMT: [&str; 8] = ["b", "c", "d", "e", "h", "l", "[hl]", "a"];
-    // TODO: remove & 0b111
     const fn oct(o: u8) -> Self { Self::ALL[(o & 0b111) as usize] }
 }
 
@@ -17,8 +16,7 @@ pub enum R16 { BC, DE, HL, SP }
 impl R16 {
     const ALL: [Self; 4] = [Self::BC, Self::DE, Self::HL, Self::SP];
     const FMT: [&str; 4] = ["bc", "de", "hl", "sp"];
-    // TODO: remove & 0b111
-    const fn oct(o: u8) -> Self { Self::ALL[(o & 0b111) as usize] }
+    const fn oct(o: u8) -> Self { Self::ALL[(o & 0b11) as usize] }
 }
 
 #[rustfmt::skip]
@@ -28,8 +26,7 @@ pub enum R16Stk { BC, DE , HL , AF }
 impl R16Stk {
     const ALL: [Self; 4] = [Self::BC, Self::DE, Self::HL, Self::AF];
     const FMT: [&str; 4] = ["bc", "de", "hl", "af"];
-    // TODO: remove & 0b111
-    const fn oct(o: u8) -> Self { Self::ALL[(o & 0b111) as usize] }
+    const fn oct(o: u8) -> Self { Self::ALL[(o & 0b11) as usize] }
 }
 
 #[rustfmt::skip]
@@ -39,8 +36,7 @@ pub enum R16Mem { BC, DE, HlInc, HlDec }
 impl R16Mem {
     const ALL: [Self; 4] = [Self::BC, Self::DE, Self::HlInc, Self::HlDec];
     const FMT: [&str; 4] = ["[bc]", "[de]", "[hl+]", "[hl-]"];
-    // TODO: remove & 0b111
-    const fn oct(o: u8) -> Self { Self::ALL[(o & 0b111) as usize] }
+    const fn oct(o: u8) -> Self { Self::ALL[(o & 0b11) as usize] }
 }
 
 impl From<R16Mem> for R16 {
@@ -60,7 +56,6 @@ pub enum Cond { NZ, Z, NC, C }
 impl Cond {
     const ALL: [Self; 4] = [Self::NZ, Self::Z, Self::NC, Self::C];
     const FMT: [&str; 4] = ["nz", "z", "nc", "c"];
-    // TODO: remove & 0b11
     const fn oct(o: u8) -> Self { Self::ALL[(o & 0b11) as usize] }
 }
 
@@ -71,7 +66,6 @@ pub enum AluOp { Add, Adc, Sub, Sbc, And, Xor, Or, Cp }
 impl AluOp {
     const ALL: [Self; 8] = [Self::Add, Self::Adc, Self::Sub, Self::Sbc, Self::And, Self::Xor, Self::Or, Self::Cp];
     const FMT: [&str; 8] = ["add", "adc", "sub", "sbc", "and", "xor", "or", "cp"];
-    // TODO: remove & 0b111
     const fn oct(o: u8) -> Self { Self::ALL[(o & 0b111) as usize] }
 }
 
@@ -82,7 +76,6 @@ pub enum ShiftOp { Rlc, Rrc, Rl, Rr, Sla, Sra, Swap, Srl }
 impl ShiftOp {
     const ALL: [Self; 8] = [Self::Rlc, Self::Rrc, Self::Rl, Self::Rr, Self::Sla, Self::Sra, Self::Swap, Self::Srl];
     const FMT: [&str; 8] = ["rlc", "rrc", "rl", "rr", "sla", "sra", "swap", "srl"];
-    // TODO: remove & 0b111
     const fn oct(o: u8) -> Self { Self::ALL[(o & 0b111) as usize] }
 }
 
@@ -157,12 +150,11 @@ pub enum Instruction {
 
 impl Instruction {
     pub const fn decode(op_code: u8) -> Self {
-        match op_code >> 6 {
-            0 => Self::block0(op_code),
-            1 => Self::block1(op_code),
-            2 => Self::block2(op_code),
-            3 => Self::block3(op_code),
-            _ => Instruction::Illegal(op_code),
+        match op_code {
+            0o000..0o100 => Self::block0(op_code),
+            0o100..0o200 => Self::block1(op_code),
+            0o200..0o300 => Self::block2(op_code),
+            0o300.. => Self::block3(op_code),
         }
     }
 
