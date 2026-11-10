@@ -130,6 +130,8 @@ impl Frontend {
     }
 
     pub fn run(&mut self, game_boy: &mut GameBoy) -> Result<(), Box<dyn Error>> {
+        let rom_name = game_boy.bus().cartridge().header().rom_name.as_str().trim().to_lowercase();
+        let _ = self.canvas.window_mut().set_title(&format!("{rom_name}"));
         if self.dbg.is_some() {
             game_boy.set_trace(true);
         }
@@ -186,7 +188,8 @@ impl Frontend {
             self.draw(game_boy)?;
 
             if let Some((emu, lcd)) = self.fps.tick(game_boy.cycle_count()) {
-                let _ = self.canvas.window_mut().set_title(&format!("RetroEmu - {emu:.1} fps (lcd {lcd:.1})"));
+                let rom_name = game_boy.bus().cartridge().header().rom_name.as_str().trim().to_lowercase();
+                let _ = self.canvas.window_mut().set_title(&format!("{rom_name} - {emu:.0} fps ({lcd:.1})"));
             }
 
             if let Some(frame_time) = game_boy.config.frame_time {

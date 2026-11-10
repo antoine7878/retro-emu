@@ -149,4 +149,5 @@ impl Bus {
     pub fn take_redraw(&mut self) -> bool { self.ppu.take_redraw() }
     pub fn set_trace(&mut self, on: bool) { self.trace = on; }
     pub fn drain_accesses(&mut self) -> std::vec::Drain<'_, MemAccess> { self.accesses.drain(..) }
+    pub fn cartridge(&self) -> &Cartridge { &self.cart }
 }

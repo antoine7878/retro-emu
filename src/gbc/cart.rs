@@ -8,9 +8,7 @@ const ROM_SIZE_FLAG: usize = 0x0148;
 const RAM_SIZE_FLAG: usize = 0x149;
 
 const TITLE_START: usize = 0x0134;
-const TITLE_END: usize = 0x0144;
-const MANU_START: usize = 0x013F;
-const MANU_END: usize = 0x0143;
+const TITLE_END: usize = 0x0143;
 pub const CGB_FLAG: usize = 0x143;
 const CARTIDGE_TYPE: usize = 0x0147;
 
@@ -42,7 +40,7 @@ pub enum Addon {
 pub struct CartridgeHeader {
     rom_bank_count: u16,
     ram_bank_count: u8,
-    rom_name: String,
+    pub rom_name: String,
     cgb_mode: CGMode,
     mbc_kind: MbcKind,
     addons: HashSet<Addon>,
@@ -58,7 +56,9 @@ impl CartridgeHeader {
         CartridgeHeader { rom_bank_count, ram_bank_count, rom_name, cgb_mode, mbc_kind, addons }
     }
 
-    fn rom_name(rom: &[u8]) -> String { rom[TITLE_START..TITLE_END].iter().map(|&byte| byte as char).collect() }
+    fn rom_name(rom: &[u8]) -> String {
+        rom[TITLE_START..TITLE_END].iter().take_while(|&&b| b != 0).map(|&b| b as char).collect()
+    }
 
     fn mode(rom: &[u8]) -> CGMode {
         match rom[CGB_FLAG] {
@@ -138,10 +138,9 @@ impl Cartridge {
         Self { header, mbc }
     }
 
-    pub fn reset(&mut self) { todo!() }
-
     pub fn read(&self, addr: u16) -> u8 { self.mbc.read(addr) }
     pub fn write(&mut self, addr: u16, value: u8) { self.mbc.write(addr, value) }
+    pub fn header(&self) -> &CartridgeHeader { &self.header }
 }
 
 trait MBC {

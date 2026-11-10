@@ -13,9 +13,7 @@ pub struct GameBoy {
 }
 
 impl GameBoy {
-    pub fn new(rom: Vec<u8>, config: Config) -> Self {
-        Self { cpu: Cpu::default(), bus: Bus::new(rom), config }
-    }
+    pub fn new(rom: Vec<u8>, config: Config) -> Self { Self { cpu: Cpu::default(), bus: Bus::new(rom), config } }
 
     pub fn reset(&mut self) {
         self.bus.reset(&self.config.mode);
@@ -78,4 +76,5 @@ impl GameBoy {
     }
 
     pub fn set_trace(&mut self, on: bool) { self.bus.set_trace(on); }
+    pub fn bus(&self) -> &Bus { &self.bus }
 }
