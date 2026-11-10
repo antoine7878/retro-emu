@@ -18,6 +18,7 @@ pub enum PowerMode {
     Normal,
     Halt,
     Stop,
+    Illegal,
 }
 
 #[derive(Default)]
@@ -83,6 +84,9 @@ impl Cpu {
     }
 
     fn execute(&mut self, instruction: Instruction, bus: &mut Bus) {
+        if self.power_mode == PowerMode::Illegal {
+            return;
+        }
         if std::mem::take(&mut self.delay_ie) {
             self.ime = true
         }
@@ -143,7 +147,7 @@ impl Cpu {
             Instruction::Res(i, r) => self.res(bus, i, r),
             Instruction::Set(i, r) => self.set(bus, i, r),
 
-            Instruction::Illegal(i) => panic!("Illegal instruction: {i:#o}"),
+            Instruction::Illegal(_) => self.power_mode = PowerMode::Illegal,
         }
     }
 
