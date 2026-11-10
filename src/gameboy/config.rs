@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use crate::gameboy::cart::CGB_FLAG;
+use crate::gameboy::cartridge::CGB_FLAG;
 use crate::gameboy::memory::map::{
     BCPD, BCPS, BGP, BOOT_DISABLE, DIV, DMA, HDMA1, HDMA2, HDMA3, HDMA4, HDMA5, IE, IF, JOYPAD, KEY0, KEY1, LCDC, LY,
     LYC, NR10, NR11, NR12, NR13, NR14, NR21, NR22, NR23, NR24, NR30, NR31, NR32, NR33, NR34, NR41, NR42, NR43, NR44,

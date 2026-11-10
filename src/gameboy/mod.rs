@@ -1,4 +1,4 @@
-mod cart;
+mod cartridge;
 mod config;
 mod console;
 mod cpu;

@@ -1,4 +1,4 @@
-use crate::gameboy::cart::Cartridge;
+use crate::gameboy::cartridge::Cartridge;
 use crate::gameboy::config::CGMode;
 use crate::gameboy::io::interrupt::Interrupter;
 use crate::gameboy::io::joypad::Joypad;
