@@ -1,6 +1,6 @@
 use std::ops::{AddAssign, BitOr};
 
-use crate::gameboy::config::CGMode;
+use crate::gameboy::config::ConsoleType;
 
 #[derive(Default)]
 pub struct IORegister<const ADDR: u16, const WRITE: u8, const READ: u8 = WRITE> {
@@ -8,7 +8,7 @@ pub struct IORegister<const ADDR: u16, const WRITE: u8, const READ: u8 = WRITE> 
 }
 
 impl<const ADDR: u16, const WRITE: u8, const READ: u8> IORegister<ADDR, WRITE, READ> {
-    pub fn reset(&mut self, mode: &CGMode) { self.raw = mode.initial_value(ADDR); }
+    pub fn reset(&mut self, mode: &ConsoleType) { self.raw = mode.initial_value(ADDR); }
     pub fn set(&mut self, bit: u8) { self.raw |= 1 << bit }
     pub fn clear(&mut self, bit: u8) { self.raw &= !(1 << bit) }
     pub fn is_set(&self, bit: u8) -> bool { self.raw & (1 << bit) > 0 }

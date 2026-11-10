@@ -1,4 +1,4 @@
-use crate::gameboy::config::CGMode;
+use crate::gameboy::config::ConsoleType;
 use crate::gameboy::memory::io_reg::{IOReg, IORegister};
 use crate::gameboy::memory::map::{SVBK, WRAM_END, WRAM_SIZE, WRAM_START};
 
@@ -14,7 +14,7 @@ impl Default for WRam {
 const FIRST_END: u16 = WRAM_START + (WRAM_SIZE / 2) as u16;
 
 impl WRam {
-    pub fn reset(&mut self, mode: &CGMode) {
+    pub fn reset(&mut self, mode: &ConsoleType) {
         self.svbk.reset(mode);
         self.banks = [[0; WRAM_SIZE]; 8];
     }

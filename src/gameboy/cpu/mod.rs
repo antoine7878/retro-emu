@@ -4,12 +4,13 @@ pub mod instruction;
 pub mod registers;
 mod shift;
 
-use crate::gameboy::config::CGMode;
 use crate::gameboy::memory::bus::Bus;
 use crate::gameboy::memory::map::DIV;
 use flag::{FlagSpec, Flags};
 use instruction::{AluOp, Cond, Instruction, R8, R16, R16Mem, R16Stk, ShiftOp};
 use registers::CpuRegisters;
+
+use super::config::ConsoleType;
 
 #[derive(Debug, PartialEq, Eq, Default)]
 pub enum PowerMode {
@@ -29,7 +30,7 @@ pub struct Cpu {
 }
 
 impl Cpu {
-    pub fn reset(&mut self, mode: &CGMode) {
+    pub fn reset(&mut self, mode: &ConsoleType) {
         self.registers.init(mode);
         self.ime = false;
         self.delay_ie = false;

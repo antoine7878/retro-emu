@@ -1,4 +1,4 @@
-use crate::gameboy::config::CGMode;
+use crate::gameboy::config::ConsoleType;
 use crate::gameboy::memory::io_reg::{IOReg, IORegister};
 use crate::gameboy::memory::map::{DIV, IF, TAC, TIMA, TMA};
 
@@ -13,7 +13,7 @@ pub struct Timer {
 }
 
 impl Timer {
-    pub fn reset(&mut self, mode: &CGMode) {
+    pub fn reset(&mut self, mode: &ConsoleType) {
         self.div.reset(mode);
         self.tima.reset(mode);
         self.tma.reset(mode);

@@ -1,4 +1,4 @@
-use crate::gameboy::config::CGMode;
+use crate::gameboy::config::ConsoleType;
 use crate::gameboy::memory::io_reg::{IOReg, IORegister};
 use crate::gameboy::memory::map::{SB, SC};
 
@@ -9,7 +9,7 @@ pub struct Link {
 }
 
 impl Link {
-    pub fn init_reg(&mut self, mode: &CGMode) {
+    pub fn init_reg(&mut self, mode: &ConsoleType) {
         self.buffer.reset(mode);
         self.ctrl.reset(mode);
     }

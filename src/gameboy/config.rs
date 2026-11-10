@@ -1,7 +1,6 @@
 use std::error::Error;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use crate::gameboy::cartridge::CGB_FLAG;
 use crate::gameboy::memory::map::{
     BCPD, BCPS, BGP, BOOT_DISABLE, DIV, DMA, HDMA1, HDMA2, HDMA3, HDMA4, HDMA5, IE, IF, JOYPAD, KEY0, KEY1, LCDC, LY,
     LYC, NR10, NR11, NR12, NR13, NR14, NR21, NR22, NR23, NR24, NR30, NR31, NR32, NR33, NR34, NR41, NR42, NR43, NR44,
@@ -16,17 +15,36 @@ pub enum CGMode {
     Cgb,
 }
 
-impl CGMode {
+#[derive(Debug, Clone)]
+pub struct Config {
+    pub rng_seed: u32,
+    pub mode: ConsoleType,
+    pub frame_time: Option<Duration>,
+}
+
+impl Config {
+    pub fn new(max_fps: u32) -> Result<Self, Box<dyn Error>> {
+        let rng_seed = SystemTime::now().duration_since(UNIX_EPOCH)?.subsec_nanos();
+        let mode = ConsoleType::Dmg;
+        let frame_time = (max_fps > 0).then(|| Duration::from_secs(1) / max_fps);
+        Ok(Self { rng_seed, mode, frame_time })
+    }
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ConsoleType {
+    Dmg,
+    Cgb,
+}
+
+impl ConsoleType {
     fn to_int(&self) -> usize {
         match self {
             Self::Dmg => 0,
-            Self::Enhanced => 1,
             Self::Cgb => 1,
         }
     }
 
     pub fn initial_value(&self, addr: u16) -> u8 {
-        let i = self.to_int();
         let vals = match addr {
             JOYPAD => [0xCF, 0xC7],
             SB => [0x00, 0x00],
@@ -87,30 +105,6 @@ impl CGMode {
             IE => [0x00, 0x00],
             _ => return 0xFF,
         };
-        vals[i]
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Config {
-    pub rng_seed: u32,
-    pub mode: CGMode,
-    pub frame_time: Option<Duration>,
-}
-
-impl Config {
-    pub fn new(rom: &[u8], max_fps: u32) -> Result<Self, Box<dyn Error>> {
-        let rng_seed = SystemTime::now().duration_since(UNIX_EPOCH)?.subsec_nanos();
-        let mode = Self::mode(rom);
-        let frame_time = (max_fps > 0).then(|| Duration::from_secs(1) / max_fps);
-        Ok(Self { rng_seed, mode, frame_time })
-    }
-
-    fn mode(rom: &[u8]) -> CGMode {
-        match rom[CGB_FLAG as usize] {
-            0x80 => CGMode::Enhanced,
-            0xC0 => CGMode::Cgb,
-            _ => CGMode::Dmg,
-        }
+        vals[self.to_int()]
     }
 }

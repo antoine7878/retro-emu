@@ -1,4 +1,4 @@
-use crate::gameboy::config::CGMode;
+use crate::gameboy::config::ConsoleType;
 use crate::gameboy::memory::io_reg::{IOReg, IORegister};
 use crate::gameboy::memory::map::{IE, IF};
 
@@ -12,7 +12,7 @@ impl Interrupter {
     pub fn pending(&self) -> u8 { self.ie.read() & self.ifl.read() & 0x1F }
     pub fn ack(&mut self, bit: u8) { self.ifl.clear(bit); }
 
-    pub fn reset(&mut self, mode: &CGMode) {
+    pub fn reset(&mut self, mode: &ConsoleType) {
         self.ie.reset(mode);
         self.ifl.reset(mode);
     }

@@ -1,5 +1,5 @@
 use crate::gameboy::cartridge::Cartridge;
-use crate::gameboy::config::CGMode;
+use crate::gameboy::config::ConsoleType;
 use crate::gameboy::io::interrupt::Interrupter;
 use crate::gameboy::io::joypad::Joypad;
 use crate::gameboy::io::link::Link;
@@ -48,7 +48,7 @@ impl Default for Bus {
 }
 
 impl Bus {
-    pub fn reset(&mut self, mode: &CGMode, rom: Vec<u8>) {
+    pub fn reset(&mut self, mode: &ConsoleType, rom: Vec<u8>) {
         self.ppu.reset(mode);
         self.wram.reset(mode);
         self.interrupter.reset(mode);

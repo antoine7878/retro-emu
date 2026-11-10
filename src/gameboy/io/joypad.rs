@@ -1,4 +1,4 @@
-use crate::gameboy::config::CGMode;
+use crate::gameboy::config::ConsoleType;
 use crate::gameboy::memory::io_reg::IOReg;
 use crate::gameboy::memory::map::JOYPAD;
 
@@ -70,7 +70,7 @@ impl Default for Joypad {
 }
 
 impl Joypad {
-    pub fn reset(&mut self, mode: &CGMode) {
+    pub fn reset(&mut self, mode: &ConsoleType) {
         self.select = mode.initial_value(JOYPAD);
         self.dpad = mode.initial_value(JOYPAD);
         self.buttons = mode.initial_value(JOYPAD);

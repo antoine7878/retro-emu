@@ -1,4 +1,4 @@
-use crate::gameboy::config::CGMode;
+use crate::gameboy::config::ConsoleType;
 use crate::gameboy::memory::io_reg::{IOReg, IORegister};
 use crate::gameboy::memory::map::{
     BGP, DMA, DMA_END, DMA_START, LCDC, LY, LYC, OAM_END, OAM_SIZE, OAM_START, OBP0, OBP1, PAL_END, PAL_START, SCX,
@@ -80,7 +80,7 @@ impl Default for Ppu {
 }
 
 impl Ppu {
-    pub fn reset(&mut self, mode: &CGMode) {
+    pub fn reset(&mut self, mode: &ConsoleType) {
         self.lcdc.reset(mode);
         self.stat.reset(mode);
         self.scy.reset(mode);
