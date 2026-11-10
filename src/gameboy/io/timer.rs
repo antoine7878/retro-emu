@@ -1,13 +1,13 @@
 use crate::gameboy::config::ConsoleType;
 use crate::gameboy::memory::io_reg::{IOReg, IORegister};
-use crate::gameboy::memory::map::{DIV, IF, TAC, TIMA, TMA};
+use crate::gameboy::memory::map;
 
 #[derive(Default)]
 pub struct Timer {
-    div: IORegister<DIV, 0xFF>,
-    tima: IORegister<TIMA, 0xFF>,
-    tma: IORegister<TMA, 0xFF>,
-    tac: IORegister<TAC, 0x07>,
+    div: IORegister<{ map::DIV }, 0xFF>,
+    tima: IORegister<{ map::TIMA }, 0xFF>,
+    tma: IORegister<{ map::TMA }, 0xFF>,
+    tac: IORegister<{ map::TAC }, 0x07>,
     tima_clock: u8,
     div_clock: u8,
 }
@@ -24,23 +24,23 @@ impl Timer {
 
     pub fn read(&self, addr: u16) -> u8 {
         match addr {
-            DIV => self.div.read(),
-            TIMA => self.tima.read(),
-            TMA => self.tma.read(),
-            TAC => self.tac.read_raw(),
+            map::DIV => self.div.read(),
+            map::TIMA => self.tima.read(),
+            map::TMA => self.tma.read(),
+            map::TAC => self.tac.read_raw(),
             _ => unreachable!(),
         }
     }
 
     pub fn write(&mut self, addr: u16, value: u8) {
         match addr {
-            DIV => {
+            map::DIV => {
                 self.div.write_raw(0);
                 self.div_clock = 0;
             }
-            TIMA => self.tima.write(value),
-            TMA => self.tma.write(value),
-            TAC => {
+            map::TIMA => self.tima.write(value),
+            map::TMA => self.tma.write(value),
+            map::TAC => {
                 self.tac.write(value);
                 self.reset_tima_clock();
             }
@@ -51,7 +51,7 @@ impl Timer {
     const CLOCKS: [u8; 4] = [255, 3, 15, 63];
     fn reset_tima_clock(&mut self) { self.tima_clock = Self::CLOCKS[self.tac.read_raw() as usize & 0b11]; }
 
-    pub fn tick(&mut self, ifl: &mut IORegister<IF, 0x1F>) {
+    pub fn tick(&mut self, ifl: &mut IORegister<{ map::IF }, 0x1F>) {
         self.tick_div();
         if self.tac.read_raw() & 0b100 == 0 {
             return;
@@ -73,7 +73,7 @@ impl Timer {
         }
     }
 
-    fn tick_tima(&mut self, ifl: &mut IORegister<IF, 0x1F>) {
+    fn tick_tima(&mut self, ifl: &mut IORegister<{ map::IF }, 0x1F>) {
         if self.tima.read_raw() == 0xFF {
             self.tima.write_raw(self.tma.read_raw());
             ifl.set(2);

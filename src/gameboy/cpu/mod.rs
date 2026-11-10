@@ -5,7 +5,7 @@ pub mod registers;
 mod shift;
 
 use crate::gameboy::memory::bus::Bus;
-use crate::gameboy::memory::map::DIV;
+use crate::gameboy::memory::map;
 use flag::{FlagSpec, Flags};
 use instruction::{AluOp, Cond, Instruction, R8, R16, R16Mem, R16Stk, ShiftOp};
 use registers::CpuRegisters;
@@ -195,7 +195,7 @@ impl Cpu {
 
     fn stop(&mut self, bus: &mut Bus) {
         self.take_pc8(bus);
-        bus.write_internal(DIV, 0);
+        bus.write_internal(map::DIV, 0);
         self.power_mode = PowerMode::Stop
     }
 

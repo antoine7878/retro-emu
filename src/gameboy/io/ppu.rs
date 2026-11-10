@@ -1,9 +1,6 @@
 use crate::gameboy::config::ConsoleType;
 use crate::gameboy::memory::io_reg::{IOReg, IORegister};
-use crate::gameboy::memory::map::{
-    BGP, DMA, DMA_END, DMA_START, LCDC, LY, LYC, OAM_END, OAM_SIZE, OAM_START, OBP0, OBP1, PAL_END, PAL_START, SCX,
-    SCY, STAT, VBK, VRAM_END, VRAM_SIZE, VRAM_START, WX, WY,
-};
+use crate::gameboy::memory::map;
 
 pub const WIDTH: usize = 160;
 pub const HEIGHT: usize = 144;
@@ -32,21 +29,21 @@ pub struct Ppu {
     selected_objects: [[u8; 4]; 10],
     selected_objects_len: usize,
 
-    vram: [[u8; VRAM_SIZE]; 2],
-    oam: [u8; OAM_SIZE],
-    lcdc: IORegister<LCDC, 0xFF>,
-    stat: IORegister<STAT, 0x78>,
-    scy: IORegister<SCY, 0xFF>,
-    scx: IORegister<SCX, 0xFF>,
-    ly: IORegister<LY, 0x00, 0xFF>,
-    lyc: IORegister<LYC, 0xFF>,
-    dma: IORegister<DMA, 0xFF>,
-    bgp: IORegister<BGP, 0xFF>,
-    opb0: IORegister<OBP0, 0xFF>,
-    opb1: IORegister<OBP1, 0xFF>,
-    wy: IORegister<WY, 0xFF>,
-    wx: IORegister<WX, 0xFF>,
-    vbk: IORegister<VBK, 0x01>,
+    vram: [[u8; map::VRAM_SIZE]; 2],
+    oam: [u8; map::OAM_SIZE],
+    lcdc: IORegister<{ map::LCDC }, 0xFF>,
+    stat: IORegister<{ map::STAT }, 0x78>,
+    scy: IORegister<{ map::SCY }, 0xFF>,
+    scx: IORegister<{ map::SCX }, 0xFF>,
+    ly: IORegister<{ map::LY }, 0x00, 0xFF>,
+    lyc: IORegister<{ map::LYC }, 0xFF>,
+    dma: IORegister<{ map::DMA }, 0xFF>,
+    bgp: IORegister<{ map::BGP }, 0xFF>,
+    opb0: IORegister<{ map::OBP0 }, 0xFF>,
+    opb1: IORegister<{ map::OBP1 }, 0xFF>,
+    wy: IORegister<{ map::WY }, 0xFF>,
+    wx: IORegister<{ map::WX }, 0xFF>,
+    vbk: IORegister<{ map::VBK }, 0x01>,
 }
 
 impl Default for Ppu {
@@ -54,8 +51,8 @@ impl Default for Ppu {
         Self {
             pixels: [[[0; 3]; WIDTH]; HEIGHT],
             dot: 0,
-            vram: [[0; VRAM_SIZE]; 2],
-            oam: [0; OAM_SIZE],
+            vram: [[0; map::VRAM_SIZE]; 2],
+            oam: [0; map::OAM_SIZE],
             selected_objects: [[0; 4]; 10],
             selected_objects_len: 0,
             stat_line: false,
@@ -97,8 +94,8 @@ impl Ppu {
 
         self.pixels = [[[0; 3]; WIDTH]; HEIGHT];
         self.dot = 0;
-        self.vram = [[0; VRAM_SIZE]; 2];
-        self.oam = [0; OAM_SIZE];
+        self.vram = [[0; map::VRAM_SIZE]; 2];
+        self.oam = [0; map::OAM_SIZE];
         self.selected_objects = [[0; 4]; 10];
         self.selected_objects_len = 0;
         self.stat_line = false;
@@ -109,28 +106,28 @@ impl Ppu {
 
     pub fn read(&self, addr: u16) -> u8 {
         match addr {
-            VRAM_START..VRAM_END => self.read_vram(addr),
-            OAM_START..OAM_END => self.read_oam(addr),
+            map::VRAM_START..map::VRAM_END => self.read_vram(addr),
+            map::OAM_START..map::OAM_END => self.read_oam(addr),
             // TODO:
-            DMA_START..DMA_END => 0xFF,
-            PAL_START..PAL_END => 0xFF,
-            LCDC => self.lcdc.read(),
-            STAT => {
+            map::DMA_START..map::DMA_END => 0xFF,
+            map::PAL_START..map::PAL_END => 0xFF,
+            map::LCDC => self.lcdc.read(),
+            map::STAT => {
                 self.stat.read() & 0xF8
                     | ((self.ly.read_raw() == self.lyc.read_raw()) as u8) << 2
                     | self.mode.clone() as u8
             }
-            SCY => self.scy.read(),
-            SCX => self.scx.read(),
-            LY => self.ly.read(),
-            LYC => self.lyc.read(),
-            DMA => self.dma.read(),
-            BGP => self.bgp.read(),
-            OBP0 => self.opb0.read(),
-            OBP1 => self.opb1.read(),
-            WY => self.wy.read(),
-            WX => self.wx.read(),
-            VBK => self.vbk.read(),
+            map::SCY => self.scy.read(),
+            map::SCX => self.scx.read(),
+            map::LY => self.ly.read(),
+            map::LYC => self.lyc.read(),
+            map::DMA => self.dma.read(),
+            map::BGP => self.bgp.read(),
+            map::OBP0 => self.opb0.read(),
+            map::OBP1 => self.opb1.read(),
+            map::WY => self.wy.read(),
+            map::WX => self.wx.read(),
+            map::VBK => self.vbk.read(),
             _ => unreachable!("Address not in PPU"),
         }
     }
@@ -138,37 +135,37 @@ impl Ppu {
     pub fn read_vram(&self, addr: u16) -> u8 {
         match self.mode {
             PpuMode::Drawing => 0xFF,
-            _ => self.vram[self.vbk.read_raw() as usize & 0x01][(addr - VRAM_START) as usize],
+            _ => self.vram[self.vbk.read_raw() as usize & 0x01][(addr - map::VRAM_START) as usize],
         }
     }
 
     pub fn read_oam(&self, addr: u16) -> u8 {
         match self.mode {
             PpuMode::OamScan | PpuMode::Drawing => 0xFF,
-            _ => self.oam[(addr - OAM_START) as usize],
+            _ => self.oam[(addr - map::OAM_START) as usize],
         }
     }
 
     pub fn write(&mut self, addr: u16, value: u8) {
         match addr {
-            VRAM_START..VRAM_END => self.write_vram(addr, value),
-            OAM_START..OAM_END => self.write_oam(addr, value),
+            map::VRAM_START..map::VRAM_END => self.write_vram(addr, value),
+            map::OAM_START..map::OAM_END => self.write_oam(addr, value),
             // TODO:
-            DMA_START..DMA_END => (),
-            PAL_START..PAL_END => (),
-            LCDC => self.lcdc.write(value),
-            STAT => self.stat.write(value),
-            SCY => self.scy.write(value),
-            SCX => self.scx.write(value),
-            LY => self.ly.write(value),
-            LYC => self.lyc.write(value),
-            DMA => self.dma.write(value),
-            BGP => self.bgp.write(value),
-            OBP0 => self.opb0.write(value),
-            OBP1 => self.opb1.write(value),
-            WY => self.wy.write(value),
-            WX => self.wx.write(value),
-            VBK => self.vbk.write(value),
+            map::DMA_START..map::DMA_END => (),
+            map::PAL_START..map::PAL_END => (),
+            map::LCDC => self.lcdc.write(value),
+            map::STAT => self.stat.write(value),
+            map::SCY => self.scy.write(value),
+            map::SCX => self.scx.write(value),
+            map::LY => self.ly.write(value),
+            map::LYC => self.lyc.write(value),
+            map::DMA => self.dma.write(value),
+            map::BGP => self.bgp.write(value),
+            map::OBP0 => self.opb0.write(value),
+            map::OBP1 => self.opb1.write(value),
+            map::WY => self.wy.write(value),
+            map::WX => self.wx.write(value),
+            map::VBK => self.vbk.write(value),
             _ => unreachable!("Address not in PPU"),
         }
     }
@@ -176,14 +173,14 @@ impl Ppu {
     pub fn write_vram(&mut self, addr: u16, value: u8) {
         match self.mode {
             PpuMode::Drawing => (),
-            _ => self.vram[self.vbk.read_raw() as usize & 0x01][(addr - VRAM_START) as usize] = value,
+            _ => self.vram[self.vbk.read_raw() as usize & 0x01][(addr - map::VRAM_START) as usize] = value,
         }
     }
 
     pub fn write_oam(&mut self, addr: u16, value: u8) {
         match self.mode {
             PpuMode::OamScan | PpuMode::Drawing => (),
-            _ => self.oam[(addr - OAM_START) as usize] = value,
+            _ => self.oam[(addr - map::OAM_START) as usize] = value,
         }
     }
 
@@ -287,7 +284,7 @@ impl Ppu {
             let tile_col = (map_x / 8) as u16;
 
             let addr = tile_map_base + tile_row * 32 + tile_col;
-            let tile_id = self.vram[0][(addr - VRAM_START) as usize];
+            let tile_id = self.vram[0][(addr - map::VRAM_START) as usize];
             // opti: do it once every : x % 8 == 0
             let tile = self.get_tile(tile_id, false);
             let low_byte = tile[row_in_tile * 2];

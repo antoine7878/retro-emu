@@ -1,11 +1,11 @@
 use crate::gameboy::config::ConsoleType;
 use crate::gameboy::memory::io_reg::{IOReg, IORegister};
-use crate::gameboy::memory::map::{IE, IF};
+use crate::gameboy::memory::map;
 
 #[derive(Default)]
 pub struct Interrupter {
-    ie: IORegister<IE, 0xFF>,
-    ifl: IORegister<IF, 0x1F>,
+    ie: IORegister<{ map::IE }, 0xFF>,
+    ifl: IORegister<{ map::IF }, 0x1F>,
 }
 
 impl Interrupter {
@@ -19,19 +19,19 @@ impl Interrupter {
 
     pub fn read(&self, addr: u16) -> u8 {
         match addr {
-            IE => self.ie.read(),
-            IF => self.ifl.read(),
+            map::IE => self.ie.read(),
+            map::IF => self.ifl.read(),
             _ => unreachable!("Address not in interrupter"),
         }
     }
 
     pub fn write(&mut self, addr: u16, value: u8) {
         match addr {
-            IE => self.ie.write(value),
-            IF => self.ifl.write(value),
+            map::IE => self.ie.write(value),
+            map::IF => self.ifl.write(value),
             _ => unreachable!("Address not in interrupter"),
         }
     }
 
-    pub fn ifl_mut(&mut self) -> &mut IORegister<IF, 0x1F> { &mut self.ifl }
+    pub fn ifl_mut(&mut self) -> &mut IORegister<{ map::IF }, 0x1F> { &mut self.ifl }
 }

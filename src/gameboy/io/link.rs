@@ -1,11 +1,11 @@
 use crate::gameboy::config::ConsoleType;
 use crate::gameboy::memory::io_reg::{IOReg, IORegister};
-use crate::gameboy::memory::map::{SB, SC};
+use crate::gameboy::memory::map;
 
 #[derive(Default)]
 pub struct Link {
-    buffer: IORegister<SB, 0xFF>,
-    ctrl: IORegister<SC, 0x83>,
+    buffer: IORegister<{ map::SB }, 0xFF>,
+    ctrl: IORegister<{ map::SC }, 0x83>,
 }
 
 impl Link {
@@ -16,16 +16,16 @@ impl Link {
 
     pub fn read(&self, addr: u16) -> u8 {
         match addr {
-            SB => self.buffer.read(),
-            SC => self.ctrl.read(),
+            map::SB => self.buffer.read(),
+            map::SC => self.ctrl.read(),
             _ => unreachable!(),
         }
     }
 
     pub fn write(&mut self, addr: u16, value: u8) {
         match addr {
-            SB => self.buffer.write(value),
-            SC => {
+            map::SB => self.buffer.write(value),
+            map::SC => {
                 self.ctrl.write(value);
                 if self.ctrl.is_set(7) && self.ctrl.is_set(0) {
                     self.transfer();

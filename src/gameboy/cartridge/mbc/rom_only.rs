@@ -1,5 +1,5 @@
 use crate::gameboy::cartridge::header::{Addon, CartridgeHeader};
-use crate::gameboy::memory::map::{ROM_END, ROM_START, SRAM_END, SRAM_START};
+use crate::gameboy::memory::map;
 
 use super::MBC;
 
@@ -17,16 +17,16 @@ impl MBC for RomOnly {
 
     fn read(&self, addr: u16) -> u8 {
         match addr {
-            ROM_START..ROM_END => self.rom[(addr & 0x3FFF) as usize],
-            SRAM_START..SRAM_END => self.ram.map_or_else(|| 0xFF, |r| r[(addr - SRAM_START) as usize]),
+            map::ROM_START..map::ROM_END => self.rom[(addr & 0x3FFF) as usize],
+            map::SRAM_START..map::SRAM_END => self.ram.map_or_else(|| 0xFF, |r| r[(addr - map::SRAM_START) as usize]),
             _ => 0xFF,
         }
     }
 
     fn write(&mut self, addr: u16, value: u8) {
         let Some(ram) = &mut self.ram else { return };
-        if matches!(addr, SRAM_START..SRAM_END) {
-            ram[(addr - SRAM_START) as usize] = value;
+        if matches!(addr, map::SRAM_START..map::SRAM_END) {
+            ram[(addr - map::SRAM_START) as usize] = value;
         }
     }
 

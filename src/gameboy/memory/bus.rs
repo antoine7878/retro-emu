@@ -6,12 +6,7 @@ use crate::gameboy::io::link::Link;
 use crate::gameboy::io::ppu::Ppu;
 use crate::gameboy::io::timer::Timer;
 use crate::gameboy::memory::io_reg::IOReg;
-use crate::gameboy::memory::map::{
-    AUDIO_END, AUDIO_START, BOOT_DISABLE, DMA_END, DMA_START, ECHO_END, ECHO_START, HRAM_END, HRAM_SIZE, HRAM_START,
-    IE, IF, JOYPAD, KEY0, KEY1, NOT_END, NOT_START, OAM_END, OAM_START, PAL_END, PAL_START, PPU_END, PPU_START,
-    ROM_END, ROM_START, SB, SC, SRAM_END, SRAM_START, SVBK, TIMER_END, TIMER_START, U1, U2E, U2S, U3E, U3S, U5, U6E,
-    U6S, U7E, U7S, U8E, U8S, VBK, VRAM_END, VRAM_START, WAVE_END, WAVE_START, WRAM_END, WRAM_START,
-};
+use crate::gameboy::memory::map;
 use crate::gameboy::memory::wram::WRam;
 use crate::gameboy::monitor::MemAccess;
 
@@ -19,7 +14,7 @@ pub struct Bus {
     cart: Cartridge,
     ppu: Ppu,
     wram: WRam,
-    hram: [u8; HRAM_SIZE],
+    hram: [u8; map::HRAM_SIZE],
     cycle_count: u64,
     interrupter: Interrupter,
     joypad: Joypad,
@@ -35,7 +30,7 @@ impl Default for Bus {
             cart: Cartridge::default(),
             ppu: Ppu::default(),
             wram: WRam::default(),
-            hram: [0; HRAM_SIZE],
+            hram: [0; map::HRAM_SIZE],
             cycle_count: 0,
             interrupter: Interrupter::default(),
             joypad: Joypad::default(),
@@ -55,7 +50,7 @@ impl Bus {
         self.joypad.reset(mode);
         self.timer.reset(mode);
         self.link.init_reg(mode);
-        self.hram = [0; HRAM_SIZE];
+        self.hram = [0; map::HRAM_SIZE];
         self.cycle_count = 0;
         self.accesses.clear();
         self.cart = Cartridge::new(rom);
@@ -63,27 +58,33 @@ impl Bus {
 
     pub fn read_internal(&self, addr: u16) -> u8 {
         match addr {
-            ROM_START..ROM_END => self.cart.read(addr),
-            VRAM_START..VRAM_END => self.ppu.read(addr),
-            SRAM_START..SRAM_END => self.cart.read(addr),
-            WRAM_START..WRAM_END | SVBK => self.wram.read(addr),
-            ECHO_START..ECHO_END => self.read_internal(addr - 0x2000),
-            OAM_START..OAM_END => self.ppu.read(addr),
-            NOT_START..NOT_END => 0xFF,
-            PPU_START..PPU_END | VBK => self.ppu.read(addr),
-            DMA_START..DMA_END | PAL_START..PAL_END => self.ppu.read(addr),
-            HRAM_START..HRAM_END => self.hram[(addr - HRAM_START) as usize],
-            TIMER_START..TIMER_END => self.timer.read(addr),
+            map::ROM_START..map::ROM_END => self.cart.read(addr),
+            map::VRAM_START..map::VRAM_END => self.ppu.read(addr),
+            map::SRAM_START..map::SRAM_END => self.cart.read(addr),
+            map::WRAM_START..map::WRAM_END | map::SVBK => self.wram.read(addr),
+            map::ECHO_START..map::ECHO_END => self.read_internal(addr - 0x2000),
+            map::OAM_START..map::OAM_END => self.ppu.read(addr),
+            map::NOT_START..map::NOT_END => 0xFF,
+            map::PPU_START..map::PPU_END | map::VBK => self.ppu.read(addr),
+            map::DMA_START..map::DMA_END | map::PAL_START..map::PAL_END => self.ppu.read(addr),
+            map::HRAM_START..map::HRAM_END => self.hram[(addr - map::HRAM_START) as usize],
+            map::TIMER_START..map::TIMER_END => self.timer.read(addr),
             // TODO:
-            AUDIO_START..AUDIO_END => 0xFF,
-            KEY0 | KEY1 => 0xFF,
-            WAVE_START..WAVE_END => 0xFF,
-            BOOT_DISABLE => 0xFF,
+            map::AUDIO_START..map::AUDIO_END => 0xFF,
+            map::KEY0 | map::KEY1 => 0xFF,
+            map::WAVE_START..map::WAVE_END => 0xFF,
+            map::BOOT_DISABLE => 0xFF,
 
-            IE | IF => self.interrupter.read(addr),
-            JOYPAD => self.joypad.read(),
-            SB | SC => self.link.read(addr),
-            U1 | U2S..U2E | U3S..U3E | U5 | U6S..U6E | U7S..U7E | U8S..U8E => 0xFF,
+            map::IE | map::IF => self.interrupter.read(addr),
+            map::JOYPAD => self.joypad.read(),
+            map::SB | map::SC => self.link.read(addr),
+            map::U1
+            | map::U2S..map::U2E
+            | map::U3S..map::U3E
+            | map::U5
+            | map::U6S..map::U6E
+            | map::U7S..map::U7E
+            | map::U8S..map::U8E => 0xFF,
         }
     }
 
@@ -98,27 +99,33 @@ impl Bus {
 
     pub fn write_internal(&mut self, addr: u16, value: u8) {
         match addr {
-            ROM_START..ROM_END => self.cart.write(addr, value),
-            VRAM_START..VRAM_END => self.ppu.write(addr, value),
-            SRAM_START..SRAM_END => self.cart.write(addr, value),
-            WRAM_START..WRAM_END | SVBK => self.wram.write(addr, value),
-            ECHO_START..ECHO_END => self.write_internal(addr - 0x2000, value),
-            OAM_START..OAM_END => self.ppu.write(addr, value),
-            NOT_START..NOT_END => (),
-            PPU_START..PPU_END | VBK => self.ppu.write(addr, value),
-            DMA_START..DMA_END | PAL_START..PAL_END => self.ppu.write(addr, value),
-            HRAM_START..HRAM_END => self.hram[(addr - HRAM_START) as usize] = value,
-            TIMER_START..TIMER_END => self.timer.write(addr, value),
+            map::ROM_START..map::ROM_END => self.cart.write(addr, value),
+            map::VRAM_START..map::VRAM_END => self.ppu.write(addr, value),
+            map::SRAM_START..map::SRAM_END => self.cart.write(addr, value),
+            map::WRAM_START..map::WRAM_END | map::SVBK => self.wram.write(addr, value),
+            map::ECHO_START..map::ECHO_END => self.write_internal(addr - 0x2000, value),
+            map::OAM_START..map::OAM_END => self.ppu.write(addr, value),
+            map::NOT_START..map::NOT_END => (),
+            map::PPU_START..map::PPU_END | map::VBK => self.ppu.write(addr, value),
+            map::DMA_START..map::DMA_END | map::PAL_START..map::PAL_END => self.ppu.write(addr, value),
+            map::HRAM_START..map::HRAM_END => self.hram[(addr - map::HRAM_START) as usize] = value,
+            map::TIMER_START..map::TIMER_END => self.timer.write(addr, value),
             // TODO:
-            AUDIO_START..AUDIO_END => (),
-            KEY0 | KEY1 => (),
-            WAVE_START..WAVE_END => (),
-            BOOT_DISABLE => (),
+            map::AUDIO_START..map::AUDIO_END => (),
+            map::KEY0 | map::KEY1 => (),
+            map::WAVE_START..map::WAVE_END => (),
+            map::BOOT_DISABLE => (),
 
-            IE | IF => self.interrupter.write(addr, value),
-            JOYPAD => self.joypad.write(value),
-            SB | SC => self.link.write(addr, value),
-            U1 | U2S..U2E | U3S..U3E | U5 | U6S..U6E | U7S..U7E | U8S..U8E => (),
+            map::IE | map::IF => self.interrupter.write(addr, value),
+            map::JOYPAD => self.joypad.write(value),
+            map::SB | map::SC => self.link.write(addr, value),
+            map::U1
+            | map::U2S..map::U2E
+            | map::U3S..map::U3E
+            | map::U5
+            | map::U6S..map::U6E
+            | map::U7S..map::U7E
+            | map::U8S..map::U8E => (),
         }
     }
 
