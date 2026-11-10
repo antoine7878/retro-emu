@@ -4,6 +4,7 @@ mod mbc;
 pub use header::{CGB_FLAG, CartridgeHeader};
 use mbc::{MBC, Mbcs};
 
+#[derive(Default)]
 pub struct Cartridge {
     mbc: Mbcs,
     header: CartridgeHeader,
@@ -19,4 +20,5 @@ impl Cartridge {
     pub fn read(&self, addr: u16) -> u8 { self.mbc.read(addr) }
     pub fn write(&mut self, addr: u16, value: u8) { self.mbc.write(addr, value) }
     pub fn header(&self) -> &CartridgeHeader { &self.header }
+    pub fn rom(&self) -> Vec<u8> { self.mbc.rom() }
 }

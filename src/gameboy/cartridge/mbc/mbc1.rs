@@ -13,7 +13,6 @@ pub struct Mbc1 {
     rom_bank_count: usize,
     ram_bank_count: usize,
     ram_size: usize,
-    // rom_size: usize,
     bank1: IORegister<0x00, 0x1F>,
     bank2: IORegister<0x00, 0x03>,
     ram_enabled: bool,
@@ -53,6 +52,8 @@ impl MBC for Mbc1 {
             _ => (),
         }
     }
+
+    fn rom(&self) -> Vec<u8> { self.rom.clone() }
 }
 
 impl Mbc1 {

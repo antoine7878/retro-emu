@@ -3,6 +3,7 @@ use crate::gameboy::memory::map::{ROM_END, ROM_START, SRAM_END, SRAM_START};
 
 use super::MBC;
 
+#[derive(Default)]
 pub struct RomOnly {
     rom: Vec<u8>,
     ram: Option<[u8; 1 << 13]>,
@@ -28,4 +29,6 @@ impl MBC for RomOnly {
             ram[(addr - SRAM_START) as usize] = value;
         }
     }
+
+    fn rom(&self) -> Vec<u8> { self.rom.clone() }
 }

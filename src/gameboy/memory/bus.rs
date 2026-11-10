@@ -29,10 +29,10 @@ pub struct Bus {
     accesses: Vec<MemAccess>,
 }
 
-impl Bus {
-    pub fn new(rom: Vec<u8>) -> Self {
+impl Default for Bus {
+    fn default() -> Self {
         Self {
-            cart: Cartridge::new(rom),
+            cart: Cartridge::default(),
             ppu: Ppu::default(),
             wram: WRam::default(),
             hram: [0; HRAM_SIZE],
@@ -45,18 +45,20 @@ impl Bus {
             accesses: Vec::new(),
         }
     }
+}
 
-    pub fn reset(&mut self, mode: &CGMode) {
+impl Bus {
+    pub fn reset(&mut self, mode: &CGMode, rom: Vec<u8>) {
         self.ppu.reset(mode);
         self.wram.reset(mode);
         self.interrupter.reset(mode);
         self.joypad.reset(mode);
         self.timer.reset(mode);
         self.link.init_reg(mode);
-        // self.cart.reset();
         self.hram = [0; HRAM_SIZE];
         self.cycle_count = 0;
         self.accesses.clear();
+        self.cart = Cartridge::new(rom);
     }
 
     pub fn read_internal(&self, addr: u16) -> u8 {

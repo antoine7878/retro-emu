@@ -13,10 +13,10 @@ pub struct GameBoy {
 }
 
 impl GameBoy {
-    pub fn new(rom: Vec<u8>, config: Config) -> Self { Self { cpu: Cpu::default(), bus: Bus::new(rom), config } }
+    pub fn new(config: Config) -> Self { Self { cpu: Cpu::default(), bus: Bus::default(), config } }
 
-    pub fn reset(&mut self) {
-        self.bus.reset(&self.config.mode);
+    pub fn reset(&mut self, rom: Vec<u8>) {
+        self.bus.reset(&self.config.mode, rom);
         self.cpu.reset(&self.config.mode);
     }
 

@@ -237,7 +237,7 @@ impl Frontend {
             }
             DebugAction::Stay => self.pause(game_boy),
             DebugAction::Reset => {
-                game_boy.reset();
+                game_boy.reset(game_boy.bus().cartridge().rom());
                 self.reset();
             }
         }

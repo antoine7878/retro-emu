@@ -8,8 +8,9 @@ use crate::gameboy::memory::map::{
     NR50, NR51, NR52, OBP0, OBP1, OCPD, OCPS, RP, SB, SC, SCX, SCY, STAT, SVBK, TAC, TIMA, TMA, VBK, WX, WY,
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum CGMode {
+    #[default]
     Dmg,
     Enhanced,
     Cgb,

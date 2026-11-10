@@ -10,8 +10,9 @@ const TITLE_END: usize = 0x0143;
 pub const CGB_FLAG: usize = 0x143;
 const CARTIDGE_TYPE: usize = 0x0147;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum MbcKind {
+    #[default]
     RomOnly,
     Mbc1,
     Mbc2,
@@ -35,6 +36,7 @@ pub enum Addon {
     Sensor,
 }
 
+#[derive(Default)]
 pub struct CartridgeHeader {
     pub rom_bank_count: u16,
     pub ram_bank_count: u8,
@@ -108,7 +110,7 @@ impl CartridgeHeader {
             0x52 => 72,
             0x53 => 80,
             0x54 => 96,
-            _ => unimplemented!("Invalid rom size"),
+            _ => unreachable!("Invalid rom size"),
         }
     }
 
@@ -119,7 +121,7 @@ impl CartridgeHeader {
             0x03 => 4,
             0x04 => 16,
             0x05 => 8,
-            _ => unimplemented!("Invalid ram size"),
+            _ => unreachable!("Invalid ram size"),
         }
     }
 }
