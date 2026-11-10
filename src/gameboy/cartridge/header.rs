@@ -36,12 +36,12 @@ pub enum Addon {
 }
 
 pub struct CartridgeHeader {
-    pub(super) rom_bank_count: u16,
-    pub(super) ram_bank_count: u8,
+    pub rom_bank_count: u16,
+    pub ram_bank_count: u8,
     pub rom_name: String,
-    cgb_mode: CGMode,
-    pub(super) mbc_kind: MbcKind,
-    pub(super) addons: HashSet<Addon>,
+    pub cgb_mode: CGMode,
+    pub mbc_kind: MbcKind,
+    pub addons: HashSet<Addon>,
 }
 
 impl CartridgeHeader {
