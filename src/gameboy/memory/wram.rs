@@ -1,6 +1,6 @@
-use crate::gbc::config::CGMode;
-use crate::gbc::memory::io_reg::{IOReg, IORegister};
-use crate::gbc::memory::map::{SVBK, WRAM_END, WRAM_SIZE, WRAM_START};
+use crate::gameboy::config::CGMode;
+use crate::gameboy::memory::io_reg::{IOReg, IORegister};
+use crate::gameboy::memory::map::{SVBK, WRAM_END, WRAM_SIZE, WRAM_START};
 
 pub struct WRam {
     banks: [[u8; WRAM_SIZE]; 8],

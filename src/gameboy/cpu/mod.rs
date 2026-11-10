@@ -4,9 +4,9 @@ pub mod instruction;
 pub mod registers;
 mod shift;
 
-use crate::gbc::config::CGMode;
-use crate::gbc::memory::bus::Bus;
-use crate::gbc::memory::map::DIV;
+use crate::gameboy::config::CGMode;
+use crate::gameboy::memory::bus::Bus;
+use crate::gameboy::memory::map::DIV;
 use flag::{FlagSpec, Flags};
 use instruction::{AluOp, Cond, Instruction, R8, R16, R16Mem, R16Stk, ShiftOp};
 use registers::CpuRegisters;

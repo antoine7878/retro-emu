@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::gbc::config::CGMode;
+use crate::gameboy::config::CGMode;
 
 const ROM_SIZE_FLAG: usize = 0x0148;
 const RAM_SIZE_FLAG: usize = 0x149;

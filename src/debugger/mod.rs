@@ -6,7 +6,7 @@ pub mod prompt;
 mod view;
 
 use crate::cli::Args;
-use crate::gbc::{AccessKind, MemAccess, Monitor, memory_location, memory_range};
+use crate::gameboy::{AccessKind, MemAccess, Monitor, memory_location, memory_range};
 
 pub const PROMPT: &str = "\x1b[1;32m(gbdb)\x1b[0m ";
 const RESET: &str = "\x1b[0m";

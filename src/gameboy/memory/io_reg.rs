@@ -1,6 +1,6 @@
 use std::ops::{AddAssign, BitOr};
 
-use crate::gbc::config::CGMode;
+use crate::gameboy::config::CGMode;
 
 #[derive(Default)]
 pub struct IORegister<const ADDR: u16, const WRITE: u8, const READ: u8 = WRITE> {

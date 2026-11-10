@@ -1,4 +1,4 @@
-use crate::gbc::cpu::instruction::ShiftOp;
+use crate::gameboy::cpu::instruction::ShiftOp;
 
 pub fn shift(op: ShiftOp, val: u8, c: u8) -> (u8, bool) {
     match op {

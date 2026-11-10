@@ -1,6 +1,6 @@
-use crate::gbc::config::CGMode;
-use crate::gbc::memory::io_reg::IOReg;
-use crate::gbc::memory::map::JOYPAD;
+use crate::gameboy::config::CGMode;
+use crate::gameboy::memory::io_reg::IOReg;
+use crate::gameboy::memory::map::JOYPAD;
 
 const UNUSED_BITS: u8 = 0b1100_0000;
 const SELECT_BUTTONS: u8 = 0b0010_0000;

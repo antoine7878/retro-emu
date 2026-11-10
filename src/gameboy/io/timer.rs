@@ -1,6 +1,6 @@
-use crate::gbc::config::CGMode;
-use crate::gbc::memory::io_reg::{IOReg, IORegister};
-use crate::gbc::memory::map::{DIV, IF, TAC, TIMA, TMA};
+use crate::gameboy::config::CGMode;
+use crate::gameboy::memory::io_reg::{IOReg, IORegister};
+use crate::gameboy::memory::map::{DIV, IF, TAC, TIMA, TMA};
 
 #[derive(Default)]
 pub struct Timer {

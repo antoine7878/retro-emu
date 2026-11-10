@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 use std::io::Write;
 
-use crate::gbc::GameBoy;
+use crate::gameboy::GameBoy;
 
 use super::{BOLD, CYAN, Debugger, RED, RESET};
 

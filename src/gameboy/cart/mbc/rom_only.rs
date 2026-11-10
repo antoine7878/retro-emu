@@ -1,5 +1,5 @@
-use crate::gbc::cart::header::{Addon, CartridgeHeader};
-use crate::gbc::memory::map::{ROM_END, ROM_START, SRAM_END, SRAM_START};
+use crate::gameboy::cart::header::{Addon, CartridgeHeader};
+use crate::gameboy::memory::map::{ROM_END, ROM_START, SRAM_END, SRAM_START};
 
 use super::MBC;
 

@@ -1,6 +1,6 @@
-use crate::gbc::cart::header::CartridgeHeader;
-use crate::gbc::memory::io_reg::{IOReg, IORegister};
-use crate::gbc::memory::map::{
+use crate::gameboy::cart::header::CartridgeHeader;
+use crate::gameboy::memory::io_reg::{IOReg, IORegister};
+use crate::gameboy::memory::map::{
     CART_RAM_BANK_SIZE, CART_ROM_BANK_SIZE, ROM_END, ROM_HALF, ROM_START, SRAM_END, SRAM_START,
 };
 

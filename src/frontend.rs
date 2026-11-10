@@ -14,7 +14,7 @@ use sdl2::{EventPump, Sdl};
 use crate::cli::Args;
 use crate::debugger::prompt::{self, Prompt};
 use crate::debugger::{DebugAction, Debugger, PROMPT, StopReason};
-use crate::gbc::{CYCLES_PER_FRAME, GameBoy, HEIGHT, WIDTH};
+use crate::gameboy::{CYCLES_PER_FRAME, GameBoy, HEIGHT, WIDTH};
 
 struct FpsCounter {
     window_start: Instant,

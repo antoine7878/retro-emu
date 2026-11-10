@@ -1,8 +1,8 @@
-use crate::gbc::config::Config;
-use crate::gbc::cpu::Cpu;
-use crate::gbc::cpu::instruction::Instruction;
-use crate::gbc::memory::bus::Bus;
-use crate::gbc::monitor::Monitor;
+use crate::gameboy::config::Config;
+use crate::gameboy::cpu::Cpu;
+use crate::gameboy::cpu::instruction::Instruction;
+use crate::gameboy::memory::bus::Bus;
+use crate::gameboy::monitor::Monitor;
 
 pub const CYCLES_PER_FRAME: u64 = 17556;
 

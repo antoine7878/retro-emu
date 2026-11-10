@@ -1,6 +1,6 @@
-use crate::gbc::config::CGMode;
-use crate::gbc::memory::io_reg::{IOReg, IORegister};
-use crate::gbc::memory::map::{
+use crate::gameboy::config::CGMode;
+use crate::gameboy::memory::io_reg::{IOReg, IORegister};
+use crate::gameboy::memory::map::{
     BGP, DMA, DMA_END, DMA_START, LCDC, LY, LYC, OAM_END, OAM_SIZE, OAM_START, OBP0, OBP1, PAL_END, PAL_START, SCX,
     SCY, STAT, VBK, VRAM_END, VRAM_SIZE, VRAM_START, WX, WY,
 };

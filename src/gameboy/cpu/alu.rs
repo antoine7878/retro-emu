@@ -1,5 +1,5 @@
-use crate::gbc::cpu::flag::{FlagSpec, Flags};
-use crate::gbc::cpu::instruction::AluOp;
+use crate::gameboy::cpu::flag::{FlagSpec, Flags};
+use crate::gameboy::cpu::instruction::AluOp;
 
 impl AluOp {
     pub const fn flag_spec(&self) -> FlagSpec {

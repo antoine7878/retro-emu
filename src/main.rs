@@ -1,16 +1,16 @@
 mod cli;
 mod debugger;
 mod frontend;
-mod gbc;
+mod gameboy;
 
 use std::fs;
 
 use frontend::Frontend;
 
 use cli::Args;
-use gbc::GameBoy;
+use gameboy::GameBoy;
 
-use crate::gbc::Config;
+use crate::gameboy::Config;
 
 fn main() {
     if let Err(e) = run() {
