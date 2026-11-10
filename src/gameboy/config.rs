@@ -13,17 +13,17 @@ pub enum CGMode {
 
 #[derive(Debug, Clone)]
 pub struct Config {
-    pub rng_seed: u32,
+    pub _rng_seed: u32,
     pub mode: ConsoleType,
     pub frame_time: Option<Duration>,
 }
 
 impl Config {
     pub fn new(max_fps: u32) -> Result<Self, Box<dyn Error>> {
-        let rng_seed = SystemTime::now().duration_since(UNIX_EPOCH)?.subsec_nanos();
+        let _rng_seed = SystemTime::now().duration_since(UNIX_EPOCH)?.subsec_nanos();
         let mode = ConsoleType::Dmg;
         let frame_time = (max_fps > 0).then(|| Duration::from_secs(1) / max_fps);
-        Ok(Self { rng_seed, mode, frame_time })
+        Ok(Self { _rng_seed, mode, frame_time })
     }
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
