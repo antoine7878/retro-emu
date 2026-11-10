@@ -1,4 +1,4 @@
-use super::config::GCMode;
+use super::config::CGMode;
 use super::io_reg::{IOReg, IORegister};
 use super::memory_map::{SVBK, WRAM_END, WRAM_SIZE, WRAM_START};
 
@@ -14,7 +14,7 @@ impl Default for WRam {
 const FIRST_END: u16 = WRAM_START + (WRAM_SIZE / 2) as u16;
 
 impl WRam {
-    pub fn reset(&mut self, mode: &GCMode) {
+    pub fn reset(&mut self, mode: &CGMode) {
         self.svbk.reset(mode);
         self.banks = [[0; WRAM_SIZE]; 8];
     }

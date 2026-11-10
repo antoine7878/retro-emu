@@ -1,16 +1,16 @@
 use crate::debugger::MemAccess;
 
 use super::cart::Cartridge;
-use super::config::GCMode;
+use super::config::CGMode;
 use super::interrupt::Interrupter;
 use super::io_reg::IOReg;
 use super::joypad::Joypad;
 use super::link::Link;
 use super::memory_map::{
-    AUDIO_END, AUDIO_START, BOOT_DISABLE, CRAM_END, CRAM_START, DMA_END, DMA_START, ECHO_END, ECHO_START, HRAM_END,
-    HRAM_SIZE, HRAM_START, IE, IF, JOYPAD, KEY0, KEY1, LY, NOT_END, NOT_START, OAM_END, OAM_START, PAL_END, PAL_START,
-    PPU_END, PPU_START, ROM_END, ROM_START, SB, SC, SVBK, TIMER_END, TIMER_START, U1, U2E, U2S, U3E, U3S, U5, U6E, U6S,
-    U7E, U7S, U8E, U8S, VBK, VRAM_END, VRAM_START, WAVE_END, WAVE_START, WRAM_END, WRAM_START,
+    AUDIO_END, AUDIO_START, BOOT_DISABLE, DMA_END, DMA_START, ECHO_END, ECHO_START, HRAM_END, HRAM_SIZE, HRAM_START,
+    IE, IF, JOYPAD, KEY0, KEY1, LY, NOT_END, NOT_START, OAM_END, OAM_START, PAL_END, PAL_START, PPU_END, PPU_START,
+    ROM_END, ROM_START, SB, SC, SRAM_END, SRAM_START, SVBK, TIMER_END, TIMER_START, U1, U2E, U2S, U3E, U3S, U5, U6E,
+    U6S, U7E, U7S, U8E, U8S, VBK, VRAM_END, VRAM_START, WAVE_END, WAVE_START, WRAM_END, WRAM_START,
 };
 use super::ppu::Ppu;
 use super::timer::Timer;
@@ -49,14 +49,14 @@ impl Bus {
         }
     }
 
-    pub fn reset(&mut self, mode: &GCMode) {
+    pub fn reset(&mut self, mode: &CGMode) {
         self.ppu.reset(mode);
         self.wram.reset(mode);
         self.interrupter.reset(mode);
         self.joypad.reset(mode);
         self.timer.reset(mode);
         self.link.init_reg(mode);
-        self.cart.reset();
+        // self.cart.reset();
         self.hram = [0; HRAM_SIZE];
         self.cycle_count = 0;
         self.accesses.clear();
@@ -64,9 +64,9 @@ impl Bus {
 
     pub fn read_internal(&self, addr: u16) -> u8 {
         match addr {
-            ROM_START..ROM_END => self.cart.read_rom(addr),
+            ROM_START..ROM_END => self.cart.read(addr),
             VRAM_START..VRAM_END => self.ppu.read(addr),
-            CRAM_START..CRAM_END => self.cart.read_ram(addr),
+            SRAM_START..SRAM_END => self.cart.read(addr),
             WRAM_START..WRAM_END | SVBK => self.wram.read(addr),
             ECHO_START..ECHO_END => self.read_internal(addr - 0x2000),
             OAM_START..OAM_END => self.ppu.read(addr),
@@ -101,9 +101,9 @@ impl Bus {
 
     pub fn write_internal(&mut self, addr: u16, value: u8) {
         match addr {
-            ROM_START..ROM_END => (),
+            ROM_START..ROM_END => self.cart.write(addr, value),
             VRAM_START..VRAM_END => self.ppu.write(addr, value),
-            CRAM_START..CRAM_END => self.cart.write_ram(addr, value),
+            SRAM_START..SRAM_END => self.cart.write(addr, value),
             WRAM_START..WRAM_END | SVBK => self.wram.write(addr, value),
             ECHO_START..ECHO_END => self.write_internal(addr - 0x2000, value),
             OAM_START..OAM_END => self.ppu.write(addr, value),

@@ -2,7 +2,7 @@ pub fn memory_location(addr: u16) -> &'static str {
     match addr {
         ROM_START..ROM_END => "ROM",
         VRAM_START..VRAM_END => "VRAM",
-        CRAM_START..CRAM_END => "CRAM",
+        SRAM_START..SRAM_END => "SRAM",
         WRAM_START..WRAM_END => "WRAM",
         ECHO_START..ECHO_END => "ECHO",
         OAM_START..OAM_END => "OAM",
@@ -84,20 +84,23 @@ pub fn memory_range(name: &str) -> Option<(u16, u16)> {
 
 // ----- Memory Size --------------------
 
+pub const SRAM_SIZE: usize = (SRAM_END - SRAM_START) as usize;
 pub const WRAM_SIZE: usize = (WRAM_END - WRAM_START) as usize;
 pub const HRAM_SIZE: usize = (HRAM_END - HRAM_START) as usize;
 pub const VRAM_SIZE: usize = (VRAM_END - VRAM_START) as usize;
 pub const OAM_SIZE: usize = (OAM_END - OAM_START) as usize;
-pub const CRAM_SIZE: usize = 1 << 13;
+pub const CART_RAM_BANK_SIZE: usize = 1 << 13;
+pub const CART_ROM_BANK_SIZE: usize = 1 << 13;
 
 // ----- Memory Map --------------------
 
 pub const ROM_START: u16 = 0x0000;
+pub const ROM_HALF: u16 = 0x4000;
 pub const ROM_END: u16 = 0x8000;
 pub const VRAM_START: u16 = 0x8000;
 pub const VRAM_END: u16 = 0xA000;
-pub const CRAM_START: u16 = 0xA000;
-pub const CRAM_END: u16 = 0xC000;
+pub const SRAM_START: u16 = 0xA000;
+pub const SRAM_END: u16 = 0xC000;
 pub const WRAM_START: u16 = 0xC000;
 pub const WRAM_END: u16 = 0xE000;
 pub const ECHO_START: u16 = 0xE000;

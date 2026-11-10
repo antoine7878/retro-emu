@@ -1,4 +1,4 @@
-use super::config::GCMode;
+use super::config::CGMode;
 use super::io_reg::{IOReg, IORegister};
 use super::memory_map::{
     BGP, DMA, DMA_END, DMA_START, LCDC, LY, LYC, OAM_END, OAM_SIZE, OAM_START, OBP0, OBP1, PAL_END, PAL_START, SCX,
@@ -81,7 +81,7 @@ impl Default for Ppu {
 }
 
 impl Ppu {
-    pub fn reset(&mut self, mode: &GCMode) {
+    pub fn reset(&mut self, mode: &CGMode) {
         self.lcdc.reset(mode);
         self.stat.reset(mode);
         self.scy.reset(mode);

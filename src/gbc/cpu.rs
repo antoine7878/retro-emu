@@ -1,5 +1,5 @@
 use super::bus::Bus;
-use super::config::GCMode;
+use super::config::CGMode;
 use super::flag::{FlagSpec, Flags};
 use super::instruction::{AluOp, Cond, Instruction, R8, R16, R16Mem, R16Stk, ShiftOp};
 use super::memory_map::DIV;
@@ -24,7 +24,7 @@ pub struct Cpu {
 }
 
 impl Cpu {
-    pub fn reset(&mut self, mode: &GCMode) {
+    pub fn reset(&mut self, mode: &CGMode) {
         self.registers.init(mode);
         self.ime = false;
         self.delay_ie = false;

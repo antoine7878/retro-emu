@@ -1,4 +1,4 @@
-use super::config::GCMode;
+use super::config::CGMode;
 use super::io_reg::IOReg;
 use super::memory_map::JOYPAD;
 
@@ -70,7 +70,7 @@ impl Default for Joypad {
 }
 
 impl Joypad {
-    pub fn reset(&mut self, mode: &GCMode) {
+    pub fn reset(&mut self, mode: &CGMode) {
         self.select = mode.initial_value(JOYPAD);
         self.dpad = mode.initial_value(JOYPAD);
         self.buttons = mode.initial_value(JOYPAD);

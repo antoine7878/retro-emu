@@ -1,4 +1,4 @@
-use super::config::GCMode;
+use super::config::CGMode;
 use super::io_reg::{IOReg, IORegister};
 use super::memory_map::{IE, IF};
 
@@ -12,7 +12,7 @@ impl Interrupter {
     pub fn pending(&self) -> u8 { self.ie.read() & self.ifl.read() & 0x1F }
     pub fn ack(&mut self, bit: u8) { self.ifl.clear(bit); }
 
-    pub fn reset(&mut self, mode: &GCMode) {
+    pub fn reset(&mut self, mode: &CGMode) {
         self.ie.reset(mode);
         self.ifl.reset(mode);
     }

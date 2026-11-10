@@ -11,18 +11,18 @@ use super::memory_map::{
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum GCMode {
+pub enum CGMode {
     Dmg,
     Enhanced,
-    Gbc,
+    Cgb,
 }
 
-impl GCMode {
+impl CGMode {
     fn to_int(&self) -> usize {
         match self {
             Self::Dmg => 0,
             Self::Enhanced => 1,
-            Self::Gbc => 1,
+            Self::Cgb => 1,
         }
     }
 
@@ -95,7 +95,7 @@ impl GCMode {
 #[derive(Debug, Clone)]
 pub struct Config {
     pub rng_seed: u32,
-    pub mode: GCMode,
+    pub mode: CGMode,
     pub frame_time: Option<Duration>,
 }
 
@@ -107,11 +107,11 @@ impl Config {
         Ok(Self { rng_seed, mode, frame_time })
     }
 
-    fn mode(rom: &[u8]) -> GCMode {
+    fn mode(rom: &[u8]) -> CGMode {
         match rom[CGB_FLAG as usize] {
-            0x80 => GCMode::Enhanced,
-            0xC0 => GCMode::Gbc,
-            _ => GCMode::Dmg,
+            0x80 => CGMode::Enhanced,
+            0xC0 => CGMode::Cgb,
+            _ => CGMode::Dmg,
         }
     }
 }

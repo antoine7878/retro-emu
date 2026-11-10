@@ -1,6 +1,6 @@
 use std::fmt;
 
-use super::config::GCMode;
+use super::config::CGMode;
 use super::flag::{FlagSpec, Flags};
 use super::instruction::{R8, R16, R16Stk};
 
@@ -23,10 +23,10 @@ pub struct CpuRegisters {
 }
 
 impl CpuRegisters {
-    pub fn init(&mut self, mode: &GCMode) {
+    pub fn init(&mut self, mode: &CGMode) {
         let (af, bc, de, hl) = match mode {
-            GCMode::Dmg | GCMode::Enhanced => (0x01B0, 0x0013, 0x00D8, 0x014D),
-            GCMode::Gbc => (0x1180, 0x0000, 0xFF56, 0x000D),
+            CGMode::Dmg | CGMode::Enhanced => (0x01B0, 0x0013, 0x00D8, 0x014D),
+            CGMode::Cgb => (0x1180, 0x0000, 0xFF56, 0x000D),
         };
         self.set_af(af);
         self.set_bc(bc);

@@ -1,4 +1,4 @@
-use super::config::GCMode;
+use super::config::CGMode;
 use super::io_reg::{IOReg, IORegister};
 use super::memory_map::{DIV, IF, TAC, TIMA, TMA};
 
@@ -13,7 +13,7 @@ pub struct Timer {
 }
 
 impl Timer {
-    pub fn reset(&mut self, mode: &GCMode) {
+    pub fn reset(&mut self, mode: &CGMode) {
         self.div.reset(mode);
         self.tima.reset(mode);
         self.tma.reset(mode);
