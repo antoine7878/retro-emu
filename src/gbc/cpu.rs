@@ -45,7 +45,6 @@ impl Cpu {
         let op = bus.read(self.pc());
         if !std::mem::take(&mut self.halt_bug) {
             *self.registers.pc_mut() = self.pc().wrapping_add(1);
-            crate::PC.store(self.pc(), std::sync::atomic::Ordering::Relaxed);
         }
         op
     }
@@ -147,7 +146,6 @@ impl Cpu {
     pub fn take_pc8(&mut self, bus: &mut Bus) -> u8 {
         let res = bus.read(self.pc());
         *self.registers.pc_mut() = self.pc().wrapping_add(1);
-        crate::PC.store(self.pc(), std::sync::atomic::Ordering::Relaxed);
         res
     }
 

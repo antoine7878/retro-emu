@@ -13,7 +13,7 @@ use sdl2::{EventPump, Sdl};
 
 use crate::args::Args;
 use crate::debugger::{DebugAction, Debugger, PROMPT, StopReason};
-use crate::gbc::{CYCLES_PER_FRAME, FRAME_RATE, GameBoy, HEIGHT, SCALE, WIDTH};
+use crate::gbc::{CYCLES_PER_FRAME, GameBoy, HEIGHT, WIDTH};
 use crate::prompt::{self, Prompt};
 
 struct FpsCounter {
@@ -62,6 +62,8 @@ pub struct Frontend {
     last_present: Instant,
 }
 
+pub const SCALE: u32 = 2;
+pub const FRAME_RATE: u32 = 60;
 const PRESENT_INTERVAL: Duration = Duration::from_nanos(1_000_000_000 / FRAME_RATE as u64);
 
 impl Frontend {

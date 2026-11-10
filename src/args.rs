@@ -4,7 +4,7 @@ use std::str::Chars;
 use std::vec;
 
 use crate::argparser::{ArgError, ArgParser, argv};
-use crate::gbc::FRAME_RATE;
+use crate::frontend::FRAME_RATE;
 
 #[derive(Debug)]
 pub struct Args {

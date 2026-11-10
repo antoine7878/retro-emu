@@ -1,8 +1,6 @@
 use std::error::Error;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use crate::args::Args;
-
 use super::cart::CGB_FLAG;
 use super::memory_map::{
     BCPD, BCPS, BGP, BOOT_DISABLE, DIV, DMA, HDMA1, HDMA2, HDMA3, HDMA4, HDMA5, IE, IF, JOYPAD, KEY0, KEY1, LCDC, LY,
@@ -100,10 +98,10 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new(args: &Args, rom: &[u8]) -> Result<Self, Box<dyn Error>> {
+    pub fn new(rom: &[u8], max_fps: u32) -> Result<Self, Box<dyn Error>> {
         let rng_seed = SystemTime::now().duration_since(UNIX_EPOCH)?.subsec_nanos();
         let mode = Self::mode(rom);
-        let frame_time = (args.max_fps > 0).then(|| Duration::from_secs(1) / args.max_fps);
+        let frame_time = (max_fps > 0).then(|| Duration::from_secs(1) / max_fps);
         Ok(Self { rng_seed, mode, frame_time })
     }
 

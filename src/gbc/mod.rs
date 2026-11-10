@@ -13,6 +13,7 @@ mod io_reg;
 mod joypad;
 mod link;
 mod memory_map;
+mod monitor;
 mod ppu;
 mod registers;
 mod shift;
@@ -21,6 +22,7 @@ mod wram;
 
 pub use config::Config;
 pub use console::GameBoy;
-pub use constants::{CYCLES_PER_FRAME, FRAME_RATE, SCALE};
+pub use constants::CYCLES_PER_FRAME;
 pub use memory_map::{memory_location, memory_range};
+pub use monitor::{AccessKind, MemAccess, Monitor};
 pub use ppu::{HEIGHT, WIDTH};

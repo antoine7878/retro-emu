@@ -6,7 +6,7 @@ use std::io::Write;
 
 use crate::args::Args;
 
-use crate::gbc::{GameBoy, memory_location, memory_range};
+use crate::gbc::{AccessKind, GameBoy, MemAccess, Monitor, memory_location, memory_range};
 
 pub const PROMPT: &str = "\x1b[1;32m(gbdb)\x1b[0m ";
 const GREY: &str = "\x1b[2m";
@@ -35,40 +35,12 @@ const SHORTCUTS: [(&str, &str); 11] = [
     ("h", "Help"),
 ];
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub enum WatchOn {
-    Read,
-    #[default]
-    Write,
-}
-
-impl fmt::Display for WatchOn {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            WatchOn::Read => write!(f, "read"),
-            WatchOn::Write => write!(f, "write"),
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct MemAccess {
-    pub addr: u16,
-    pub value: u8,
-    pub on: WatchOn,
-}
-
-impl MemAccess {
-    pub fn read(addr: u16, value: u8) -> Self { Self { addr, value, on: WatchOn::Read } }
-    pub fn write(addr: u16, value: u8) -> Self { Self { addr, value, on: WatchOn::Write } }
-}
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Watchpoint {
     start: u16,
     end: u16,
     value: Option<u8>,
-    on: WatchOn,
+    on: AccessKind,
 }
 
 impl fmt::Display for Watchpoint {
@@ -120,6 +92,27 @@ impl fmt::Display for StopReason {
     }
 }
 
+impl Monitor for Debugger {
+    type Stop = StopReason;
+
+    fn check(&mut self, pc: u16) -> Option<Self::Stop> {
+        let reason = self.stop_reason(pc);
+        if reason.is_none() {
+            if self.history.len() == HISTORY_LEN {
+                self.history.pop_front();
+            }
+            self.history.push_back(pc);
+        }
+        reason
+    }
+
+    fn check_accesses(&mut self, mut accesses: impl Iterator<Item = MemAccess>) -> Option<Self::Stop> {
+        accesses
+            .find(|a| self.watchpoints.keys().any(|w| w.on == a.on && (w.start..=w.end).contains(&a.addr)))
+            .map(StopReason::Watchpoint)
+    }
+}
+
 pub enum DebugAction {
     Continue,
     Step,
@@ -161,23 +154,6 @@ impl Debugger {
             self.handle_command(cmd.as_str());
         }
         DebugAction::Reset
-    }
-
-    pub fn check(&mut self, pc: u16) -> Option<StopReason> {
-        let reason = self.stop_reason(pc);
-        if reason.is_none() {
-            if self.history.len() == HISTORY_LEN {
-                self.history.pop_front();
-            }
-            self.history.push_back(pc);
-        }
-        reason
-    }
-
-    pub fn check_accesses(&mut self, mut accesses: impl Iterator<Item = MemAccess>) -> Option<StopReason> {
-        accesses
-            .find(|a| self.watchpoints.keys().any(|w| w.on == a.on && (w.start..=w.end).contains(&a.addr)))
-            .map(StopReason::Watchpoint)
     }
 
     fn stop_reason(&mut self, pc: u16) -> Option<StopReason> {
@@ -257,9 +233,9 @@ impl Debugger {
     fn add_watchpoint<'a, It: Iterator<Item = &'a str>>(&mut self, it: &mut It) {
         let mut max_id = *self.watchpoints.values().max().unwrap_or(&0) + 1;
         let ons = match it.next() {
-            Some("r" | "read") => [WatchOn::Read, WatchOn::Read],
-            Some("w" | "write") => [WatchOn::Write, WatchOn::Write],
-            Some("rw" | "wr") => [WatchOn::Read, WatchOn::Write],
+            Some("r" | "read") => [AccessKind::Read, AccessKind::Read],
+            Some("w" | "write") => [AccessKind::Write, AccessKind::Write],
+            Some("rw" | "wr") => [AccessKind::Read, AccessKind::Write],
             _ => return self.log(format!("{YELLOW}Watchpoint{RESET} {RED}not added{RESET}")),
         };
         let Some(range) = it.next() else {

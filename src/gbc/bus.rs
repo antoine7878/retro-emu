@@ -1,5 +1,3 @@
-use crate::debugger::MemAccess;
-
 use super::cart::Cartridge;
 use super::config::CGMode;
 use super::interrupt::Interrupter;
@@ -12,6 +10,7 @@ use super::memory_map::{
     ROM_END, ROM_START, SB, SC, SRAM_END, SRAM_START, SVBK, TIMER_END, TIMER_START, U1, U2E, U2S, U3E, U3S, U5, U6E,
     U6S, U7E, U7S, U8E, U8S, VBK, VRAM_END, VRAM_START, WAVE_END, WAVE_START, WRAM_END, WRAM_START,
 };
+use super::monitor::MemAccess;
 use super::ppu::Ppu;
 use super::timer::Timer;
 use super::wram::WRam;

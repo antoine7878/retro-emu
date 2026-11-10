@@ -6,7 +6,6 @@ mod gbc;
 mod prompt;
 
 use std::fs;
-use std::sync::atomic::{AtomicU16, Ordering};
 
 use frontend::Frontend;
 
@@ -15,12 +14,9 @@ use gbc::GameBoy;
 
 use crate::gbc::Config;
 
-pub static PC: AtomicU16 = AtomicU16::new(0x0100);
-
 fn main() {
     if let Err(e) = run() {
-        let cycle = PC.load(Ordering::Relaxed);
-        eprintln!("error at ${cycle:04X}: {e}");
+        eprintln!("error: {e}");
         std::process::exit(1)
     }
 }
@@ -30,7 +26,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     let sdl = sdl2::init()?;
     let rom_path = args.infiles[0].as_str();
     let rom = fs::read(rom_path).map_err(|e| format!("{rom_path}: {e}"))?;
-    let config = Config::new(&args, &rom)?;
+    let config = Config::new(&rom, args.max_fps)?;
     let mut gb = GameBoy::new(rom, config);
     gb.reset();
     let mut frontend = Frontend::new(args, sdl)?;
