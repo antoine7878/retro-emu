@@ -33,9 +33,6 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     let config = Config::new(&args, &rom)?;
     let mut gb = GameBoy::new(rom, config);
     gb.reset();
-    if let Some(path) = &args.doctor_log {
-        gb.set_doctor(path).map_err(|e| format!("{path}: {e}"))?;
-    }
     let mut frontend = Frontend::new(args, sdl)?;
     frontend.run(&mut gb)
 }
