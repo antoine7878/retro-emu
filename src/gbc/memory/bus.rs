@@ -1,19 +1,19 @@
-use super::cart::Cartridge;
-use super::config::CGMode;
-use super::interrupt::Interrupter;
-use super::io_reg::IOReg;
-use super::joypad::Joypad;
-use super::link::Link;
-use super::memory_map::{
+use crate::gbc::cart::Cartridge;
+use crate::gbc::config::CGMode;
+use crate::gbc::io::interrupt::Interrupter;
+use crate::gbc::io::joypad::Joypad;
+use crate::gbc::io::link::Link;
+use crate::gbc::io::ppu::Ppu;
+use crate::gbc::io::timer::Timer;
+use crate::gbc::memory::io_reg::IOReg;
+use crate::gbc::memory::map::{
     AUDIO_END, AUDIO_START, BOOT_DISABLE, DMA_END, DMA_START, ECHO_END, ECHO_START, HRAM_END, HRAM_SIZE, HRAM_START,
     IE, IF, JOYPAD, KEY0, KEY1, NOT_END, NOT_START, OAM_END, OAM_START, PAL_END, PAL_START, PPU_END, PPU_START,
     ROM_END, ROM_START, SB, SC, SRAM_END, SRAM_START, SVBK, TIMER_END, TIMER_START, U1, U2E, U2S, U3E, U3S, U5, U6E,
     U6S, U7E, U7S, U8E, U8S, VBK, VRAM_END, VRAM_START, WAVE_END, WAVE_START, WRAM_END, WRAM_START,
 };
-use super::monitor::MemAccess;
-use super::ppu::Ppu;
-use super::timer::Timer;
-use super::wram::WRam;
+use crate::gbc::memory::wram::WRam;
+use crate::gbc::monitor::MemAccess;
 
 pub struct Bus {
     cart: Cartridge,

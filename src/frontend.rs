@@ -11,10 +11,10 @@ use sdl2::render::{Canvas, Texture};
 use sdl2::video::Window;
 use sdl2::{EventPump, Sdl};
 
-use crate::args::Args;
+use crate::cli::Args;
+use crate::debugger::prompt::{self, Prompt};
 use crate::debugger::{DebugAction, Debugger, PROMPT, StopReason};
 use crate::gbc::{CYCLES_PER_FRAME, GameBoy, HEIGHT, WIDTH};
-use crate::prompt::{self, Prompt};
 
 struct FpsCounter {
     window_start: Instant,

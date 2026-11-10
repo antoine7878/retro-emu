@@ -1,6 +1,6 @@
-use super::config::CGMode;
-use super::io_reg::{IOReg, IORegister};
-use super::memory_map::{IE, IF};
+use crate::gbc::config::CGMode;
+use crate::gbc::memory::io_reg::{IOReg, IORegister};
+use crate::gbc::memory::map::{IE, IF};
 
 #[derive(Default)]
 pub struct Interrupter {

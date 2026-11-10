@@ -1,1 +1,0 @@
-pub const CYCLES_PER_FRAME: u64 = 17556;

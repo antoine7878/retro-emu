@@ -1,9 +1,10 @@
-use super::bus::Bus;
-use super::config::Config;
-use super::constants::CYCLES_PER_FRAME;
-use super::cpu::Cpu;
-use super::instruction::Instruction;
-use super::monitor::Monitor;
+use crate::gbc::config::Config;
+use crate::gbc::cpu::Cpu;
+use crate::gbc::cpu::instruction::Instruction;
+use crate::gbc::memory::bus::Bus;
+use crate::gbc::monitor::Monitor;
+
+pub const CYCLES_PER_FRAME: u64 = 17556;
 
 pub struct GameBoy {
     cpu: Cpu,

@@ -1,8 +1,8 @@
 use std::fmt;
 
-use super::config::CGMode;
-use super::flag::{FlagSpec, Flags};
-use super::instruction::{R8, R16, R16Stk};
+use crate::gbc::config::CGMode;
+use crate::gbc::cpu::flag::{FlagSpec, Flags};
+use crate::gbc::cpu::instruction::{R8, R16, R16Stk};
 
 const ZERO_FLAG: u8 = 7;
 const SUB_FLAG: u8 = 6;

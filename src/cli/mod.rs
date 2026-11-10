@@ -1,10 +1,12 @@
+mod parser;
+
 use std::path::Path;
 use std::process::exit;
 use std::str::Chars;
 use std::vec;
 
-use crate::argparser::{ArgError, ArgParser, argv};
 use crate::frontend::FRAME_RATE;
+use parser::{ArgError, ArgParser, argv};
 
 #[derive(Debug)]
 pub struct Args {
@@ -39,13 +41,7 @@ impl ArgParser for Args {
 
 impl Default for Args {
     fn default() -> Self {
-        Self {
-            infiles: Vec::default(),
-            debug: false,
-            argv: argv(),
-            debug_init_file: None,
-            max_fps: FRAME_RATE,
-        }
+        Self { infiles: Vec::default(), debug: false, argv: argv(), debug_init_file: None, max_fps: FRAME_RATE }
     }
 }
 

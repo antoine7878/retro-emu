@@ -1,15 +1,13 @@
-mod argparser;
-mod args;
+mod cli;
 mod debugger;
 mod frontend;
 mod gbc;
-mod prompt;
 
 use std::fs;
 
 use frontend::Frontend;
 
-use args::Args;
+use cli::Args;
 use gbc::GameBoy;
 
 use crate::gbc::Config;

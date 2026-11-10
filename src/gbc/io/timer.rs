@@ -1,6 +1,6 @@
-use super::config::CGMode;
-use super::io_reg::{IOReg, IORegister};
-use super::memory_map::{DIV, IF, TAC, TIMA, TMA};
+use crate::gbc::config::CGMode;
+use crate::gbc::memory::io_reg::{IOReg, IORegister};
+use crate::gbc::memory::map::{DIV, IF, TAC, TIMA, TMA};
 
 #[derive(Default)]
 pub struct Timer {

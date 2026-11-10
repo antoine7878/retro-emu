@@ -1,10 +1,15 @@
-use super::bus::Bus;
-use super::config::CGMode;
-use super::flag::{FlagSpec, Flags};
-use super::instruction::{AluOp, Cond, Instruction, R8, R16, R16Mem, R16Stk, ShiftOp};
-use super::memory_map::DIV;
-use super::registers::CpuRegisters;
-use super::{alu, shift};
+mod alu;
+pub mod flag;
+pub mod instruction;
+pub mod registers;
+mod shift;
+
+use crate::gbc::config::CGMode;
+use crate::gbc::memory::bus::Bus;
+use crate::gbc::memory::map::DIV;
+use flag::{FlagSpec, Flags};
+use instruction::{AluOp, Cond, Instruction, R8, R16, R16Mem, R16Stk, ShiftOp};
+use registers::CpuRegisters;
 
 #[derive(Debug, PartialEq, Eq, Default)]
 pub enum PowerMode {

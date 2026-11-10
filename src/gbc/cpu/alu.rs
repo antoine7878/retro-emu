@@ -1,5 +1,5 @@
-use super::flag::{FlagSpec, Flags};
-use super::instruction::AluOp;
+use crate::gbc::cpu::flag::{FlagSpec, Flags};
+use crate::gbc::cpu::instruction::AluOp;
 
 impl AluOp {
     pub const fn flag_spec(&self) -> FlagSpec {
