@@ -11,6 +11,8 @@ from typing import IO
 ROOT = Path(__file__).resolve().parent.parent
 TESTS = ROOT / "rscs" / "gb-test-roms"
 BIN = ROOT / "target" / "release" / "retro_emu"
+TIMEOUT = 1
+JOBS = 10
 ROMS = [
     "halt_bug.gb",
     "instr_timing/instr_timing.gb",
@@ -45,8 +47,6 @@ ROMS = [
     "oam_bug/rom_singles/7-timing_effect.gb",
     "oam_bug/rom_singles/8-instr_effect.gb",
 ]
-TIMEOUT = 1
-JOBS = 10
 
 
 def run(rom: Path) -> tuple[str, str]:
