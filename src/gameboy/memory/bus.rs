@@ -11,6 +11,8 @@ use crate::gameboy::memory::map;
 use crate::gameboy::memory::wram::WRam;
 use crate::gameboy::monitor::MemAccess;
 
+use super::map::{OAM_END, OAM_START, VRAM_END, VRAM_START};
+
 pub struct Bus {
     cartridge: Cartridge,
     ppu: Ppu,
@@ -61,9 +63,6 @@ impl Bus {
     }
 
     pub fn read_internal(&self, addr: u16) -> u8 {
-        if self.dma.is_active() && self.dma.conflict(addr) {
-            return self.dma.current_byte();
-        }
         match addr {
             map::ROM_START..map::ROM_END => self.cartridge.read(addr),
             map::VRAM_START..map::VRAM_END => self.ppu.read(addr),
@@ -72,7 +71,7 @@ impl Bus {
             map::ECHO_START..map::ECHO_END => self.read_internal(addr - 0x2000),
             map::OAM_START..map::OAM_END => self.ppu.read(addr),
             map::NOT_START..map::NOT_END => 0xFF,
-            map::DMA => self.dma.read(addr),
+            map::DMA => self.dma.read(),
             map::PPU_START..map::PPU_END | map::VBK => self.ppu.read(addr),
             map::DMA_START..map::DMA_END | map::PAL_START..map::PAL_END => self.ppu.read(addr),
             map::HRAM_START..map::HRAM_END => self.hram[(addr - map::HRAM_START) as usize],
@@ -99,7 +98,13 @@ impl Bus {
 
     pub fn read(&mut self, addr: u16) -> u8 {
         self.tick();
-        let value = self.read_internal(addr);
+        let value = if !(self.dma.has_transferred() && self.dma.conflict(addr)) {
+            self.read_internal(addr)
+        } else if matches!(addr, OAM_START..OAM_END) {
+            0xFF
+        } else {
+            self.dma.current_byte()
+        };
         if self.trace {
             self.accesses.push(MemAccess::read(addr, value));
         }
@@ -107,9 +112,6 @@ impl Bus {
     }
 
     pub fn write_internal(&mut self, addr: u16, value: u8) {
-        if self.dma.is_active() && self.dma.conflict(addr) {
-            return;
-        }
         match addr {
             map::ROM_START..map::ROM_END => self.cartridge.write(addr, value),
             map::VRAM_START..map::VRAM_END => self.ppu.write(addr, value),
@@ -118,7 +120,7 @@ impl Bus {
             map::ECHO_START..map::ECHO_END => self.write_internal(addr - 0x2000, value),
             map::OAM_START..map::OAM_END => self.ppu.write(addr, value),
             map::NOT_START..map::NOT_END => (),
-            map::DMA => self.dma.write(addr, value),
+            map::DMA => self.dma.write(value),
             map::PPU_START..map::PPU_END | map::VBK => self.ppu.write(addr, value),
             map::DMA_START..map::DMA_END | map::PAL_START..map::PAL_END => self.ppu.write(addr, value),
             map::HRAM_START..map::HRAM_END => self.hram[(addr - map::HRAM_START) as usize] = value,
@@ -149,6 +151,9 @@ impl Bus {
         if self.trace {
             self.accesses.push(MemAccess::write(addr, value));
         }
+        if self.dma.has_transferred() && self.dma.conflict(addr) {
+            return;
+        }
         self.write_internal(addr, value);
     }
 
@@ -164,9 +169,12 @@ impl Bus {
         self.timer.tick(self.interrupter.ifl_mut());
         self.link.tick(self.interrupter.ifl_mut());
         if let Some((src, dst)) = self.dma.tick() {
-            let byte = self.read(src);
-            self.write_internal(dst, byte);
-            self.dma.write_raw(byte);
+            let byte = match src {
+                VRAM_START..VRAM_END => self.ppu.dma_read_vram(src),
+                _ => self.read_internal(src),
+            };
+            self.ppu.dma_write_oam(dst, byte);
+            self.dma.set_current_byte(byte);
         }
         self.cycle_count += 1;
     }

@@ -1,4 +1,5 @@
 pub mod audio;
+pub mod dma;
 pub mod interrupt;
 pub mod joypad;
 pub mod link;

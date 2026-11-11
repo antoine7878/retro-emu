@@ -37,7 +37,6 @@ pub struct Ppu {
     scx: IORegister<{ map::SCX }, 0xFF>,
     ly: IORegister<{ map::LY }, 0x00, 0xFF>,
     lyc: IORegister<{ map::LYC }, 0xFF>,
-    dma: IORegister<{ map::DMA }, 0xFF>,
     bgp: IORegister<{ map::BGP }, 0xFF>,
     opb0: IORegister<{ map::OBP0 }, 0xFF>,
     opb1: IORegister<{ map::OBP1 }, 0xFF>,
@@ -64,7 +63,6 @@ impl Default for Ppu {
             scx: IORegister::default(),
             ly: IORegister::default(),
             lyc: IORegister::default(),
-            dma: IORegister::default(),
             bgp: IORegister::default(),
             opb0: IORegister::default(),
             opb1: IORegister::default(),
@@ -84,7 +82,6 @@ impl Ppu {
         self.scx.reset(mode);
         self.ly.reset(mode);
         self.lyc.reset(mode);
-        self.dma.reset(mode);
         self.bgp.reset(mode);
         self.opb0.reset(mode);
         self.opb1.reset(mode);
@@ -108,7 +105,7 @@ impl Ppu {
         match addr {
             map::VRAM_START..map::VRAM_END => self.read_vram(addr),
             map::OAM_START..map::OAM_END => self.read_oam(addr),
-            // TODO:CGB
+            // TODO: DMA CGB
             map::DMA_START..map::DMA_END => 0xFF,
             map::PAL_START..map::PAL_END => 0xFF,
             map::LCDC => self.lcdc.read(),
@@ -121,7 +118,6 @@ impl Ppu {
             map::SCX => self.scx.read(),
             map::LY => self.ly.read(),
             map::LYC => self.lyc.read(),
-            map::DMA => self.dma.read(),
             map::BGP => self.bgp.read(),
             map::OBP0 => self.opb0.read(),
             map::OBP1 => self.opb1.read(),
@@ -150,7 +146,7 @@ impl Ppu {
         match addr {
             map::VRAM_START..map::VRAM_END => self.write_vram(addr, value),
             map::OAM_START..map::OAM_END => self.write_oam(addr, value),
-            // TODO:CGB
+            // TODO: DMA CGB
             map::DMA_START..map::DMA_END => (),
             map::PAL_START..map::PAL_END => (),
             map::LCDC => self.lcdc.write(value),
@@ -159,7 +155,6 @@ impl Ppu {
             map::SCX => self.scx.write(value),
             map::LY => self.ly.write(value),
             map::LYC => self.lyc.write(value),
-            map::DMA => self.dma.write(value),
             map::BGP => self.bgp.write(value),
             map::OBP0 => self.opb0.write(value),
             map::OBP1 => self.opb1.write(value),
@@ -182,6 +177,12 @@ impl Ppu {
             PpuMode::OamScan | PpuMode::Drawing => (),
             _ => self.oam[(addr - map::OAM_START) as usize] = value,
         }
+    }
+
+    pub fn dma_write_oam(&mut self, i: u16, value: u8) { self.oam[i as usize] = value; }
+
+    pub fn dma_read_vram(&self, addr: u16) -> u8 {
+        self.vram[self.vbk.read_raw() as usize & 0x01][(addr - map::VRAM_START) as usize]
     }
 
     fn tile_offset(&self, id: u8, object: bool) -> usize {
