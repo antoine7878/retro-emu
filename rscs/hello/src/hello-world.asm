@@ -38,6 +38,7 @@ CopyTiles:
 	ld de, Tilemap
 	ld hl, $9800
 	ld bc, Tilemap.End - Tilemap
+
 CopyTilemap:
 	ld a, [de]
 	ld [hli], a

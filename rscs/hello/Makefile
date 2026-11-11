@@ -2,7 +2,7 @@ ASM = rgbasm
 LINK = rgblink
 FIX = rgbfix
 
-ROM_NAME = hello-world
+ROM_NAME = bad_game
 SOURCES = src/hello-world.asm
 FIX_FLAGS = -v -p 0
 
