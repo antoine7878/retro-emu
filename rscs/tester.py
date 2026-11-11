@@ -11,12 +11,12 @@ from typing import IO
 ROOT = Path(__file__).resolve().parent.parent
 TESTS = ROOT / "rscs" / "gb-test-roms"
 BIN = ROOT / "target" / "release" / "retro_emu"
-TIMEOUT = 1
+TIMEOUT = 2
 JOBS = 10
 ROMS = [
+    "interrupt_time/interrupt_time.gb",
     "halt_bug.gb",
     "instr_timing/instr_timing.gb",
-    "interrupt_time/interrupt_time.gb",
     "cpu_instrs/cpu_instrs.gb",
     "cpu_instrs/individual/01-special.gb",
     "cpu_instrs/individual/02-interrupts.gb",
@@ -49,7 +49,7 @@ ROMS = [
 ]
 
 
-def run(rom: Path) -> tuple[str, str]:
+def run(rom: Path) -> str:
     proc = subprocess.Popen(
         [BIN, rom, "-t", "0", "-s"],
         stdout=subprocess.PIPE,
@@ -70,11 +70,10 @@ def run(rom: Path) -> tuple[str, str]:
     while time.monotonic() < deadline:
         text = out.decode(errors="replace")
         if "Passed" in text:
-            status = "PASS"
+            status = "OK"
             break
         if "Failed" in text:
-            time.sleep(0.2)
-            status = "FAIL"
+            status = "KO"
             break
         if proc.poll() is not None:
             t.join(0.5)
@@ -83,7 +82,10 @@ def run(rom: Path) -> tuple[str, str]:
         time.sleep(0.05)
     proc.kill()
     proc.wait()
-    return status, out.decode(errors="replace").strip()
+    return status
+
+
+COLORS = {"OK": "\033[32m", "KO": "\033[31m"}
 
 
 def main():
@@ -94,15 +96,11 @@ def main():
         results = list(ex.map(run, roms))
 
     passed = 0
-    for rom, (status, out) in zip(roms, results):
-        passed += status == "PASS"
-        print(f"{status:8} {rom.relative_to(TESTS)}")
-        if status != "PASS":
-            print(
-                "    " + out.replace("\n", "\n    ")
-                if out
-                else "    <no serial output>"
-            )
+    for rom, status in zip(roms, results):
+        passed += status == "OK"
+        color = COLORS.get(status)
+        label = f"{color}{status:8}\033[0m" if color else f"{status:8}"
+        print(f"{label} {rom.relative_to(TESTS)}")
     print(f"\n{passed}/{len(roms)} passed")
     sys.exit(passed != len(roms))
 

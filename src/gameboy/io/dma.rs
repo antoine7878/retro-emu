@@ -20,15 +20,15 @@ impl DMA {
 
     pub fn write(&mut self, value: u8) {
         self.is_delay = true;
-        let src = (value as u16) << 8;
-        self.src = if src >= map::ECHO_START { src - 0x2000 } else { src };
-        self.i = 0;
         self.dma.write(value);
     }
 
     pub fn tick(&mut self) -> Option<(u16, u16)> {
         if std::mem::take(&mut self.is_delay) {
             self.has_transferred = self.is_active;
+            let src = (self.dma.read() as u16) << 8;
+            self.src = if src >= map::ECHO_START { src - 0x2000 } else { src };
+            self.i = 0;
             self.is_active = true;
             return None;
         }
