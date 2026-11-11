@@ -11,7 +11,7 @@ pub struct Cartridge {
 
 impl Default for Cartridge {
     fn default() -> Self {
-        let bad_rom = include_bytes!("./../../../rscs/bad_game.gb").to_vec();
+        let bad_rom = include_bytes!("./../../../rscs/error_roms/bad_game.gb").to_vec();
         Cartridge::try_new(bad_rom).unwrap()
     }
 }

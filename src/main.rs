@@ -28,7 +28,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
 
     let rom = match args.infiles.get(0) {
         Some(file) => fs::read(file)?,
-        None => include_bytes!("./../rscs/no_game.gb").to_vec(),
+        None => include_bytes!("./../rscs/error_roms/no_game.gb").to_vec(),
     };
     gb.load(rom);
 
