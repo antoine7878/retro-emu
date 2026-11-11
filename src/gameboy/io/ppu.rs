@@ -319,6 +319,9 @@ impl Ppu {
                 let high_byte = tile[row_in_tile * 2 + 1];
                 let bit_index = 7 - lx;
                 let color_id = (((high_byte >> bit_index) & 1) << 1) | ((low_byte >> bit_index) & 1);
+                if color_id == 0 {
+                    continue;
+                }
                 let shade = (palette >> (color_id * 2)) & 0b11;
                 *buffer_pixel = shade;
             }

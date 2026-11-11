@@ -43,7 +43,14 @@ impl ArgParser for Args {
 
 impl Default for Args {
     fn default() -> Self {
-        Self { infiles: Vec::default(), debug: false, argv: argv(), debug_init_file: None, max_fps: FRAME_RATE, serial_print: false }
+        Self {
+            infiles: Vec::default(),
+            debug: false,
+            argv: argv(),
+            debug_init_file: None,
+            max_fps: FRAME_RATE,
+            serial_print: false,
+        }
     }
 }
 
@@ -63,6 +70,7 @@ impl Args {
 
     fn check(self) -> Result<Self, ArgError> {
         match self.infiles.len() {
+            0 => Ok(self),
             1 if Path::new(&self.infiles[0]).is_file() => Ok(self),
             1 => Err(ArgError::NotAfile(self.infiles[0].clone())),
             n => Err(ArgError::BadArgumentCount(n, 1)),

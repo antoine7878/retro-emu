@@ -32,7 +32,7 @@ pub struct Cpu {
 
 impl Cpu {
     pub fn reset(&mut self, mode: &ConsoleType) {
-        self.registers.init(mode);
+        self.registers.reset(mode);
         self.ime = false;
         self.delay_ie = false;
         self.halt_bug = false;

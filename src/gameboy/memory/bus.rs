@@ -11,7 +11,7 @@ use crate::gameboy::memory::wram::WRam;
 use crate::gameboy::monitor::MemAccess;
 
 pub struct Bus {
-    cart: Cartridge,
+    cartridge: Cartridge,
     ppu: Ppu,
     wram: WRam,
     hram: [u8; map::HRAM_SIZE],
@@ -27,7 +27,7 @@ pub struct Bus {
 impl Default for Bus {
     fn default() -> Self {
         Self {
-            cart: Cartridge::default(),
+            cartridge: Cartridge::default(),
             ppu: Ppu::default(),
             wram: WRam::default(),
             hram: [0; map::HRAM_SIZE],
@@ -53,14 +53,14 @@ impl Bus {
         self.hram = [0; map::HRAM_SIZE];
         self.cycle_count = 0;
         self.accesses.clear();
-        self.cart = Cartridge::new(rom);
+        self.cartridge = Cartridge::try_new(rom).unwrap_or_default();
     }
 
     pub fn read_internal(&self, addr: u16) -> u8 {
         match addr {
-            map::ROM_START..map::ROM_END => self.cart.read(addr),
+            map::ROM_START..map::ROM_END => self.cartridge.read(addr),
             map::VRAM_START..map::VRAM_END => self.ppu.read(addr),
-            map::SRAM_START..map::SRAM_END => self.cart.read(addr),
+            map::SRAM_START..map::SRAM_END => self.cartridge.read(addr),
             map::WRAM_START..map::WRAM_END | map::SVBK => self.wram.read(addr),
             map::ECHO_START..map::ECHO_END => self.read_internal(addr - 0x2000),
             map::OAM_START..map::OAM_END => self.ppu.read(addr),
@@ -99,9 +99,9 @@ impl Bus {
 
     pub fn write_internal(&mut self, addr: u16, value: u8) {
         match addr {
-            map::ROM_START..map::ROM_END => self.cart.write(addr, value),
+            map::ROM_START..map::ROM_END => self.cartridge.write(addr, value),
             map::VRAM_START..map::VRAM_END => self.ppu.write(addr, value),
-            map::SRAM_START..map::SRAM_END => self.cart.write(addr, value),
+            map::SRAM_START..map::SRAM_END => self.cartridge.write(addr, value),
             map::WRAM_START..map::WRAM_END | map::SVBK => self.wram.write(addr, value),
             map::ECHO_START..map::ECHO_END => self.write_internal(addr - 0x2000, value),
             map::OAM_START..map::OAM_END => self.ppu.write(addr, value),
@@ -159,5 +159,5 @@ impl Bus {
 
     pub fn set_serial_print(&mut self, on: bool) { self.link.set_print(on); }
     pub fn drain_accesses(&mut self) -> std::vec::Drain<'_, MemAccess> { self.accesses.drain(..) }
-    pub fn cartridge(&self) -> &Cartridge { &self.cart }
+    pub fn cartridge(&self) -> &Cartridge { &self.cartridge }
 }

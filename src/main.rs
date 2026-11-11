@@ -22,11 +22,15 @@ fn main() {
 fn run() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse()?;
     let sdl = sdl2::init()?;
-    let rom_path = args.infiles[0].as_str();
-    let rom = fs::read(rom_path).map_err(|e| format!("{rom_path}: {e}"))?;
+
     let config = Config::new(args.max_fps, args.serial_print)?;
     let mut gb = GameBoy::new(config);
-    gb.reset(rom);
-    let mut frontend = Frontend::new(args, sdl)?;
-    frontend.run(&mut gb)
+
+    let rom = match args.infiles.get(0) {
+        Some(file) => fs::read(file)?,
+        None => include_bytes!("./../rscs/bad_game.gb").to_vec(),
+    };
+    gb.load(rom);
+
+    Frontend::new(args, sdl)?.run(&mut gb)
 }

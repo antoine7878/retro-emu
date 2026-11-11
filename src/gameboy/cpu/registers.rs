@@ -23,7 +23,7 @@ pub struct CpuRegisters {
 }
 
 impl CpuRegisters {
-    pub fn init(&mut self, mode: &ConsoleType) {
+    pub fn reset(&mut self, mode: &ConsoleType) {
         let (af, bc, de, hl) = match mode {
             ConsoleType::Dmg => (0x01B0, 0x0013, 0x00D8, 0x014D),
             ConsoleType::Cgb => (0x1180, 0x0000, 0xFF56, 0x000D),

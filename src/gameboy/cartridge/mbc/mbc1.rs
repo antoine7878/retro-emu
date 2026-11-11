@@ -18,7 +18,7 @@ pub struct Mbc1 {
 }
 
 impl MBC for Mbc1 {
-    fn from_header(rom: Vec<u8>, header: &CartridgeHeader) -> Self {
+    fn try_from_header(rom: Vec<u8>, header: &CartridgeHeader) -> Self {
         let rom_bank_count = header.rom_bank_count as usize;
         let rom_size = rom_bank_count * map::CART_ROM_BANK_SIZE;
         let mut rom = rom;
