@@ -5,6 +5,7 @@ mod cpu;
 mod io;
 mod memory;
 mod monitor;
+mod sram_output;
 
 pub use config::Config;
 pub use console::{CYCLES_PER_FRAME, GameBoy};

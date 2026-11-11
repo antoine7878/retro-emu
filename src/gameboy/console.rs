@@ -3,12 +3,14 @@ use crate::gameboy::cpu::Cpu;
 use crate::gameboy::cpu::instruction::Instruction;
 use crate::gameboy::memory::bus::Bus;
 use crate::gameboy::monitor::Monitor;
+use crate::gameboy::sram_output::SramOutput;
 
 pub const CYCLES_PER_FRAME: u64 = 17556;
 
 pub struct GameBoy {
     cpu: Cpu,
     bus: Bus,
+    sram_output: SramOutput,
     pub config: Config,
 }
 
@@ -17,17 +19,21 @@ impl GameBoy {
         let mut bus = Bus::default();
         bus.set_serial_print(config.serial_print);
         let cpu = Cpu::default();
-        Self { cpu, bus, config }
+        Self { cpu, bus, sram_output: SramOutput::default(), config }
     }
 
     pub fn load(&mut self, rom: Vec<u8>) {
         self.bus.reset(&self.config.mode, rom);
         self.cpu.reset(&self.config.mode);
+        self.sram_output.reset();
     }
 
     pub fn run_frame<M: Monitor>(&mut self, mut dbg: Option<&mut M>) -> Option<M::Stop> {
         let start = self.bus.get_cycle_count();
         while self.bus.get_cycle_count() - start < CYCLES_PER_FRAME {
+            if self.cpu.stopped(&mut self.bus) {
+                break;
+            }
             if !self.cpu.halted(&mut self.bus) {
                 if let Some(r) = dbg.as_deref_mut().and_then(|d| d.check(self.cpu.pc())) {
                     return Some(r);
@@ -38,6 +44,9 @@ impl GameBoy {
             if let Some(r) = dbg.as_deref_mut().and_then(|d| d.check_accesses(self.bus.drain_accesses())) {
                 return Some(r);
             }
+        }
+        if self.config.serial_print {
+            self.sram_output.poll(&self.bus);
         }
         None
     }
