@@ -1,5 +1,6 @@
 use crate::gameboy::cartridge::Cartridge;
 use crate::gameboy::config::ConsoleType;
+use crate::gameboy::io::dma::DMA;
 use crate::gameboy::io::interrupt::Interrupter;
 use crate::gameboy::io::joypad::Joypad;
 use crate::gameboy::io::link::Link;
@@ -21,6 +22,7 @@ pub struct Bus {
     timer: Timer,
     link: Link,
     trace: bool,
+    dma: DMA,
     accesses: Vec<MemAccess>,
 }
 
@@ -37,6 +39,7 @@ impl Default for Bus {
             timer: Timer::default(),
             link: Link::default(),
             trace: false,
+            dma: DMA::default(),
             accesses: Vec::new(),
         }
     }
@@ -44,6 +47,7 @@ impl Default for Bus {
 
 impl Bus {
     pub fn reset(&mut self, mode: &ConsoleType, rom: Vec<u8>) {
+        self.dma.reset(mode);
         self.ppu.reset(mode);
         self.wram.reset(mode);
         self.interrupter.reset(mode);
@@ -57,6 +61,9 @@ impl Bus {
     }
 
     pub fn read_internal(&self, addr: u16) -> u8 {
+        if self.dma.is_active() && self.dma.conflict(addr) {
+            return self.dma.current_byte();
+        }
         match addr {
             map::ROM_START..map::ROM_END => self.cartridge.read(addr),
             map::VRAM_START..map::VRAM_END => self.ppu.read(addr),
@@ -65,6 +72,7 @@ impl Bus {
             map::ECHO_START..map::ECHO_END => self.read_internal(addr - 0x2000),
             map::OAM_START..map::OAM_END => self.ppu.read(addr),
             map::NOT_START..map::NOT_END => 0xFF,
+            map::DMA => self.dma.read(addr),
             map::PPU_START..map::PPU_END | map::VBK => self.ppu.read(addr),
             map::DMA_START..map::DMA_END | map::PAL_START..map::PAL_END => self.ppu.read(addr),
             map::HRAM_START..map::HRAM_END => self.hram[(addr - map::HRAM_START) as usize],
@@ -99,6 +107,9 @@ impl Bus {
     }
 
     pub fn write_internal(&mut self, addr: u16, value: u8) {
+        if self.dma.is_active() && self.dma.conflict(addr) {
+            return;
+        }
         match addr {
             map::ROM_START..map::ROM_END => self.cartridge.write(addr, value),
             map::VRAM_START..map::VRAM_END => self.ppu.write(addr, value),
@@ -107,6 +118,7 @@ impl Bus {
             map::ECHO_START..map::ECHO_END => self.write_internal(addr - 0x2000, value),
             map::OAM_START..map::OAM_END => self.ppu.write(addr, value),
             map::NOT_START..map::NOT_END => (),
+            map::DMA => self.dma.write(addr, value),
             map::PPU_START..map::PPU_END | map::VBK => self.ppu.write(addr, value),
             map::DMA_START..map::DMA_END | map::PAL_START..map::PAL_END => self.ppu.write(addr, value),
             map::HRAM_START..map::HRAM_END => self.hram[(addr - map::HRAM_START) as usize] = value,
@@ -116,6 +128,7 @@ impl Bus {
             map::WAVE_START..map::WAVE_END => (),
             // TODO: Keypad
             map::KEY0 | map::KEY1 => (),
+            // TODO: boot
             map::BOOT_DISABLE => (),
 
             map::IE | map::IF => self.interrupter.write(addr, value),
@@ -149,6 +162,12 @@ impl Bus {
         let dots = 4;
         self.ppu.ticks(dots, self.interrupter.ifl_mut());
         self.timer.tick(self.interrupter.ifl_mut());
+        self.link.tick(self.interrupter.ifl_mut());
+        if let Some((src, dst)) = self.dma.tick() {
+            let byte = self.read(src);
+            self.write_internal(dst, byte);
+            self.dma.write_raw(byte);
+        }
         self.cycle_count += 1;
     }
 
