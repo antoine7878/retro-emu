@@ -18,7 +18,7 @@ pub struct Mbc1 {
 }
 
 impl MBC for Mbc1 {
-    fn try_from_header(rom: Vec<u8>, header: &CartridgeHeader) -> Self {
+    fn try_from_header(rom: Vec<u8>, header: &CartridgeHeader) -> Option<Self> {
         let rom_bank_count = header.rom_bank_count as usize;
         let rom_size = rom_bank_count * map::CART_ROM_BANK_SIZE;
         let mut rom = rom;
@@ -26,7 +26,7 @@ impl MBC for Mbc1 {
         let ram_bank_count = header.ram_bank_count as usize;
         let ram_size = ram_bank_count * map::CART_RAM_BANK_SIZE;
         let ram = vec![0; ram_size];
-        Self { rom, ram, rom_bank_count, ram_bank_count, ram_size, ..Default::default() }
+        Some(Self { rom, ram, rom_bank_count, ram_bank_count, ram_size, ..Default::default() })
     }
 
     fn read(&self, addr: u16) -> u8 {

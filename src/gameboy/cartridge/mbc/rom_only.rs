@@ -10,9 +10,9 @@ pub struct RomOnly {
 }
 
 impl MBC for RomOnly {
-    fn try_from_header(rom: Vec<u8>, header: &CartridgeHeader) -> Self {
+    fn try_from_header(rom: Vec<u8>, header: &CartridgeHeader) -> Option<Self> {
         let ram = header.addons.contains(&Addon::Ram).then_some([0; 1 << 13]);
-        Self { rom, ram }
+        Some(Self { rom, ram })
     }
 
     fn read(&self, addr: u16) -> u8 {

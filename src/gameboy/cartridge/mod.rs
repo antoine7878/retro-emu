@@ -4,16 +4,22 @@ mod mbc;
 pub use header::CartridgeHeader;
 use mbc::{MBC, Mbcs};
 
-#[derive(Default)]
 pub struct Cartridge {
     mbc: Mbcs,
     header: CartridgeHeader,
 }
 
+impl Default for Cartridge {
+    fn default() -> Self {
+        let bad_rom = include_bytes!("./../../../rscs/bad_game.gb").to_vec();
+        Cartridge::try_new(bad_rom).unwrap()
+    }
+}
+
 impl Cartridge {
     pub fn try_new(rom: Vec<u8>) -> Option<Self> {
         let header = CartridgeHeader::try_new(&rom)?;
-        let mbc = Mbcs::try_from_header(rom, &header);
+        let mbc = Mbcs::try_from_header(rom, &header)?;
         Some(Self { header, mbc })
     }
 
