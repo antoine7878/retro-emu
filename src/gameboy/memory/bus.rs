@@ -69,10 +69,11 @@ impl Bus {
             map::DMA_START..map::DMA_END | map::PAL_START..map::PAL_END => self.ppu.read(addr),
             map::HRAM_START..map::HRAM_END => self.hram[(addr - map::HRAM_START) as usize],
             map::TIMER_START..map::TIMER_END => self.timer.read(addr),
-            // TODO:
+            // TODO:Audio
             map::AUDIO_START..map::AUDIO_END => 0xFF,
-            map::KEY0 | map::KEY1 => 0xFF,
             map::WAVE_START..map::WAVE_END => 0xFF,
+            // TODO:keypad
+            map::KEY0 | map::KEY1 => 0xFF,
             map::BOOT_DISABLE => 0xFF,
 
             map::IE | map::IF => self.interrupter.read(addr),
@@ -110,10 +111,11 @@ impl Bus {
             map::DMA_START..map::DMA_END | map::PAL_START..map::PAL_END => self.ppu.write(addr, value),
             map::HRAM_START..map::HRAM_END => self.hram[(addr - map::HRAM_START) as usize] = value,
             map::TIMER_START..map::TIMER_END => self.timer.write(addr, value),
-            // TODO:
+            // TODO: Audio
             map::AUDIO_START..map::AUDIO_END => (),
-            map::KEY0 | map::KEY1 => (),
             map::WAVE_START..map::WAVE_END => (),
+            // TODO: Keypad
+            map::KEY0 | map::KEY1 => (),
             map::BOOT_DISABLE => (),
 
             map::IE | map::IF => self.interrupter.write(addr, value),

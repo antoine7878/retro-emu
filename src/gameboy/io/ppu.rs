@@ -108,7 +108,7 @@ impl Ppu {
         match addr {
             map::VRAM_START..map::VRAM_END => self.read_vram(addr),
             map::OAM_START..map::OAM_END => self.read_oam(addr),
-            // TODO:
+            // TODO:CGB
             map::DMA_START..map::DMA_END => 0xFF,
             map::PAL_START..map::PAL_END => 0xFF,
             map::LCDC => self.lcdc.read(),
@@ -150,7 +150,7 @@ impl Ppu {
         match addr {
             map::VRAM_START..map::VRAM_END => self.write_vram(addr, value),
             map::OAM_START..map::OAM_END => self.write_oam(addr, value),
-            // TODO:
+            // TODO:CGB
             map::DMA_START..map::DMA_END => (),
             map::PAL_START..map::PAL_END => (),
             map::LCDC => self.lcdc.write(value),
@@ -285,7 +285,7 @@ impl Ppu {
 
             let addr = tile_map_base + tile_row * 32 + tile_col;
             let tile_id = self.vram[0][(addr - map::VRAM_START) as usize];
-            // opti: do it once every : x % 8 == 0
+            // OPTI: do it once every : x % 8 == 0
             let tile = self.get_tile(tile_id, false);
             let low_byte = tile[row_in_tile * 2];
             let high_byte = tile[row_in_tile * 2 + 1];
@@ -299,31 +299,39 @@ impl Ppu {
 
     fn render_objects(&mut self, line_buffer: &mut [u8; WIDTH]) {
         let screen_y = self.ly.read();
-
         if self.lcdc.is_clear(1) {
             return;
         }
-        // let object_size = if self.lcdc.is_set(2) { 8 } else { 16 };
+        let object_height = if self.lcdc.is_set(2) { 8 } else { 16 };
         for [tile_y, tile_x, tile_id, attr] in self.selected_objects[0..self.selected_objects_len].iter() {
-            let tile = self.get_tile(*tile_id, true);
-            // let priority = attr & 0x80 > 0;
-            // let flip_y = attr & 0x40 > 0;
-            // let flip_x = attr & 0x20 > 0;
-            let palette = if attr >> 4 & 1 == 0 { self.opb0.read() } else { self.opb1.read() };
-            let row_in_tile = ((screen_y + 16 - tile_y) % 8) as usize;
+            // TODO: object priority
+            // let priority = attr & 0x80 != 0;
+            let flip_y = attr & 0x40 != 0;
+            let flip_x = attr & 0x20 != 0;
+            let opb_1 = attr & 0x10 != 0;
+            let mut row = screen_y + 16 - tile_y;
+            if flip_y {
+                row = object_height - 1 - row;
+            }
+
+            let id = if object_height == 16 { (tile_id & 0xFE) | (row >> 3) } else { *tile_id };
+            let row_in_tile = (row % 8) as usize;
+            let tile = self.get_tile(id, true);
+            let palette = if opb_1 { self.opb1.read() } else { self.opb0.read() };
+
+            let low_byte = tile[row_in_tile * 2];
+            let high_byte = tile[row_in_tile * 2 + 1];
+
             let tile_x = *tile_x as usize;
+
             for lx in 0..8 {
                 let Some(x) = (tile_x + lx).checked_sub(8).filter(|&x| x < WIDTH) else { continue };
-                let buffer_pixel = &mut line_buffer[x];
-                let low_byte = tile[row_in_tile * 2];
-                let high_byte = tile[row_in_tile * 2 + 1];
-                let bit_index = 7 - lx;
+                let bit_index = if flip_x { lx } else { 7 - lx };
                 let color_id = (((high_byte >> bit_index) & 1) << 1) | ((low_byte >> bit_index) & 1);
                 if color_id == 0 {
                     continue;
                 }
-                let shade = (palette >> (color_id * 2)) & 0b11;
-                *buffer_pixel = shade;
+                line_buffer[x] = (palette >> (color_id * 2)) & 0b11;
             }
         }
     }
