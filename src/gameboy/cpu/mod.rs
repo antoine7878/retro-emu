@@ -10,7 +10,7 @@ use flag::{FlagSpec, Flags};
 use instruction::{AluOp, Cond, Instruction, R8, R16, R16Mem, R16Stk, ShiftOp};
 use registers::CpuRegisters;
 
-use super::config::ConsoleType;
+use super::{config::ConsoleType, memory::io_reg::IOReg};
 
 #[derive(Debug, PartialEq, Eq, Default)]
 pub enum PowerMode {
@@ -62,6 +62,17 @@ impl Cpu {
         }
         if bus.pending_interrupt() == 0 {
             bus.tick();
+            return true;
+        }
+        self.power_mode = PowerMode::Normal;
+        false
+    }
+
+    pub fn stopped(&mut self, bus: &mut Bus) -> bool {
+        if self.power_mode != PowerMode::Stop {
+            return false;
+        }
+        if bus.joypad().read() & 0x0F == 0x0F {
             return true;
         }
         self.power_mode = PowerMode::Normal;

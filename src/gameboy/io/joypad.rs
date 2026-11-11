@@ -62,6 +62,7 @@ impl IOReg for Joypad {
         }
         UNUSED_BITS | self.select | lines
     }
+
     fn write(&mut self, value: u8) { self.select = value & SELECT_MASK; }
 }
 
