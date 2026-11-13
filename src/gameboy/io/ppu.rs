@@ -285,8 +285,11 @@ impl Ppu {
         let mut line_buffer = [0u8; WIDTH];
         self.render_background(&mut line_buffer);
         self.render_objects(&mut line_buffer);
-        for (x, id) in line_buffer.iter().enumerate() {
-            self.pixels[self.ly.read() as usize][x] = PALETTE_ORIGINAL[(*id & 0b11) as usize];
+        let bgp = if self.lcdc.is_set(BG_WIN_ENABLE) { self.bgp.read() } else { 0 };
+        let ly = self.ly.read() as usize;
+        for (x, v) in line_buffer.iter().enumerate() {
+            let shade = if v & CLAIMED != 0 { v & 0b11 } else { (bgp >> ((v & 0b11) * 2)) & 0b11 };
+            self.pixels[ly][x] = PALETTE_ORIGINAL[shade as usize];
         }
     }
 
@@ -310,7 +313,6 @@ impl Ppu {
         let win_map: u16 = if self.lcdc.is_set(WINDOW_MAP) { 0x9C00 } else { 0x9800 };
         let bg_map: u16 = if self.lcdc.is_set(BG_MAP) { 0x9C00 } else { 0x9800 };
         let by = ly.wrapping_add(scy) as u16;
-        let palette = self.bgp.read();
         let mut drew_window = false;
 
         for (x, pixel) in line_buffer.iter_mut().enumerate() {
@@ -327,7 +329,7 @@ impl Ppu {
                 let tile = self.read_vram_raw(bg_map + (by / 8) * 32 + bx / 8);
                 self.get_tile_pixel(tile, bx % 8, by % 8)
             };
-            *pixel = (palette >> (color_idx * 2)) & 0x03;
+            *pixel = color_idx;
         }
 
         if drew_window {
