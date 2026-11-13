@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::process::Command;
 use std::sync::mpsc::{Receiver, Sender};
 use std::thread::sleep;
@@ -149,7 +150,9 @@ impl Frontend {
                 break;
             }
             self.process_commands(game_boy);
-            self.step(game_boy);
+            if catch_unwind(AssertUnwindSafe(|| self.step(game_boy))).is_err() {
+                self.recover(game_boy);
+            }
             self.draw(game_boy)?;
             self.update_fps(game_boy);
             Self::throttle(&mut next_frame, game_boy.config.frame_time);
@@ -207,6 +210,12 @@ impl Frontend {
             let cmd = if cmd.is_empty() { self.last_cmd.clone() } else { cmd };
             self.handle_command(&cmd, game_boy);
         }
+    }
+
+    fn recover(&mut self, game_boy: &mut GameBoy) {
+        eprintln!("emulator panicked at PC={:04X}, cycle={}", game_boy.pc(), game_boy.cycle_count());
+        game_boy.load(include_bytes!("../rscs/error_roms/bad_game.gb").to_vec());
+        self.set_title(game_boy, None);
     }
 
     fn step(&mut self, game_boy: &mut GameBoy) {

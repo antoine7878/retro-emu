@@ -12,6 +12,8 @@ pub struct RomOnly {
 impl MBC for RomOnly {
     fn try_from_header(rom: Vec<u8>, header: &CartridgeHeader) -> Option<Self> {
         let ram = header.addons.contains(&Addon::Ram).then_some([0; 1 << 13]);
+        let mut rom = rom;
+        rom.resize(map::ROM_END as usize, 0xFF);
         Some(Self { rom, ram })
     }
 
