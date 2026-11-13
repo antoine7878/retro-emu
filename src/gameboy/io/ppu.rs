@@ -380,8 +380,9 @@ impl Ppu {
 
     pub fn ticks<const A: u16, const T: u8>(&mut self, dots: u8, ifl: &mut IORegister<A, T>) {
         if self.lcdc.is_clear(LCDC_OFF) {
-            self.dot = 0;
+            self.dot = 4;
             self.ly.write_raw(0);
+            self.mode = PpuMode::HBlank;
             return;
         }
         let next = match self.mode {
