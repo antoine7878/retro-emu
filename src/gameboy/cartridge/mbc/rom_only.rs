@@ -17,7 +17,7 @@ impl MBC for RomOnly {
 
     fn read(&self, addr: u16) -> u8 {
         match addr {
-            map::ROM_START..map::ROM_END => self.rom[(addr & 0x3FFF) as usize],
+            map::ROM_START..map::ROM_END => self.rom[(addr) as usize],
             map::SRAM_START..map::SRAM_END => self.ram.map_or_else(|| 0xFF, |r| r[(addr - map::SRAM_START) as usize]),
             _ => 0xFF,
         }
