@@ -1,7 +1,7 @@
 ROM=rscs/tetris.gb
 
 test:
-	cargo run --release -- $(ROM)
+	cargo run --release -- $(ROM) -t 0
 
 ctest:
 	./rscs/tester.py

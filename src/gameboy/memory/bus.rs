@@ -170,10 +170,10 @@ impl Bus {
         self.link.tick(self.interrupter.ifl_mut());
         if let Some((src, dst)) = self.dma.tick() {
             let byte = match src {
-                VRAM_START..VRAM_END => self.ppu.dma_read_vram(src),
+                VRAM_START..VRAM_END => self.ppu.read_vram_dma(src),
                 _ => self.read_internal(src),
             };
-            self.ppu.dma_write_oam(dst, byte);
+            self.ppu.write_oam_dma(dst, byte);
             self.dma.set_current_byte(byte);
         }
         self.cycle_count += 1;

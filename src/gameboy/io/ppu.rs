@@ -5,7 +5,14 @@ use crate::gameboy::memory::map;
 pub const WIDTH: usize = 160;
 pub const HEIGHT: usize = 144;
 
-const LCDC_OFF: u8 = 7;
+const PPU_OFF: u8 = 7;
+const WINDOW_MAP: u8 = 6;
+const WINDOW_ENABLE: u8 = 5;
+const BG_WIN_TILE_DATA: u8 = 4;
+const BG_MAP: u8 = 3;
+const OBJ_SIZE: u8 = 2;
+const OBJ_ENABLE: u8 = 1;
+const BG_WIN_ENABLE: u8 = 0;
 const CLAIMED: u8 = 0x80;
 
 const fn palette(brightness: u8) -> [[u8; 3]; 4] {
@@ -40,7 +47,9 @@ pub struct Ppu {
 
     stat_line: bool,
     mode: PpuMode,
+
     window_line: u16,
+    wy_triggered: bool,
 
     selected_objects: [[u8; 4]; 10],
     selected_objects_len: usize,
@@ -73,6 +82,7 @@ impl Default for Ppu {
             stat_line: false,
             redraw: false,
             window_line: 0,
+            wy_triggered: false,
             lcdc: IORegister::default(),
             stat: IORegister::default(),
             scy: IORegister::default(),
@@ -104,7 +114,6 @@ impl Ppu {
         self.wy.reset(mode);
         self.wx.reset(mode);
         self.vbk.reset(mode);
-
         self.pixels = [[[0; 3]; WIDTH]; HEIGHT];
         self.dot = 0;
         self.vram = [[0; map::VRAM_SIZE]; 2];
@@ -114,6 +123,7 @@ impl Ppu {
         self.stat_line = false;
         self.redraw = false;
         self.window_line = 0;
+        self.wy_triggered = false;
         self.mode = PpuMode::HBlank;
     }
 
@@ -195,14 +205,16 @@ impl Ppu {
         }
     }
 
-    pub fn dma_write_oam(&mut self, i: u16, value: u8) { self.oam[i as usize] = value; }
+    pub fn read_vram_raw(&self, addr: u16) -> u8 { self.vram[0][(addr - map::VRAM_START) as usize] }
 
-    pub fn dma_read_vram(&self, addr: u16) -> u8 {
+    pub fn read_vram_dma(&self, addr: u16) -> u8 {
         self.vram[self.vbk.read_raw() as usize & 0x01][(addr - map::VRAM_START) as usize]
     }
 
+    pub fn write_oam_dma(&mut self, i: u16, value: u8) { self.oam[i as usize] = value; }
+
     fn tile_offset(&self, id: u8, object: bool) -> usize {
-        let unsigned = object || self.lcdc.is_set(4);
+        let unsigned = object || self.lcdc.is_set(BG_WIN_TILE_DATA);
         if unsigned { id as usize * 16 } else { (0x1000 + (id as i8 as i32) * 16) as usize }
     }
 
@@ -253,7 +265,7 @@ impl Ppu {
 
     fn scan_oam(&mut self) {
         let line = self.ly.read() as i16 + 16;
-        let height: i16 = if self.lcdc.is_set(2) { 16 } else { 8 };
+        let height: i16 = if self.lcdc.is_set(OBJ_SIZE) { 16 } else { 8 };
 
         self.selected_objects_len = 0;
         for o in self.oam.as_chunks::<4>().0 {
@@ -272,7 +284,6 @@ impl Ppu {
     fn render_scanline(&mut self) {
         let mut line_buffer = [0u8; WIDTH];
         self.render_background(&mut line_buffer);
-        self.render_window(&mut line_buffer);
         self.render_objects(&mut line_buffer);
         for (x, id) in line_buffer.iter().enumerate() {
             self.pixels[self.ly.read() as usize][x] = PALETTE_ORIGINAL[(*id & 0b11) as usize];
@@ -280,48 +291,69 @@ impl Ppu {
     }
 
     fn render_background(&mut self, line_buffer: &mut [u8; WIDTH]) {
-        let screen_y = self.ly.read();
-        let pixel_row = &mut self.pixels[screen_y as usize];
+        let ly = self.ly.read();
+        let scx = self.scx.read();
+        let scy = self.scy.read();
+        let wx = self.wx.read();
 
-        if self.lcdc.is_clear(0) {
-            pixel_row.iter_mut().for_each(|pixel| *pixel = PALETTE_ORIGINAL[0]);
+        if self.wy.read() == ly {
+            self.wy_triggered = true;
+        }
+
+        if !self.lcdc.is_set(BG_WIN_ENABLE) {
+            line_buffer.fill(0);
             return;
         }
 
-        let tile_map_base: u16 = if self.lcdc.is_clear(3) { 0x9800 } else { 0x9C00 };
-        let scx = self.scx.read();
-        let scy = self.scy.read();
-        let bg_palette = self.bgp.read();
+        let window_visible = self.lcdc.is_set(WINDOW_ENABLE) && self.wy_triggered && wx <= 166;
+        let win_x_start = wx as i16 - 7;
+        let win_map: u16 = if self.lcdc.is_set(WINDOW_MAP) { 0x9C00 } else { 0x9800 };
+        let bg_map: u16 = if self.lcdc.is_set(BG_MAP) { 0x9C00 } else { 0x9800 };
+        let by = ly.wrapping_add(scy) as u16;
+        let palette = self.bgp.read();
+        let mut drew_window = false;
 
-        let map_y = scy.wrapping_add(screen_y);
-        let tile_row = (map_y / 8) as u16;
-        let row_in_tile = (map_y % 8) as usize;
+        for (x, pixel) in line_buffer.iter_mut().enumerate() {
+            let x = x as i16;
 
-        for (lx, buffer_pixel) in line_buffer.iter_mut().enumerate() {
-            let map_x = scx.wrapping_add(lx as u8);
-            let tile_col = (map_x / 8) as u16;
-
-            let addr = tile_map_base + tile_row * 32 + tile_col;
-            let tile_id = self.vram[0][(addr - map::VRAM_START) as usize];
-            // OPTI: do it once every : x % 8 == 0
-            let tile = self.get_tile(tile_id, false);
-            let low_byte = tile[row_in_tile * 2];
-            let high_byte = tile[row_in_tile * 2 + 1];
-
-            let bit_index = 7 - (map_x % 8);
-            let color_id = (((high_byte >> bit_index) & 1) << 1) | ((low_byte >> bit_index) & 1);
-            let shade = (bg_palette >> (color_id * 2)) & 0b11;
-            *buffer_pixel = shade;
+            let color_idx = if window_visible && x >= win_x_start {
+                let wx = (x - win_x_start) as u16;
+                let wy = self.window_line;
+                let tile = self.read_vram_raw(win_map + (wy / 8) * 32 + wx / 8);
+                drew_window = true;
+                self.get_tile_pixel(tile, wx % 8, wy % 8)
+            } else {
+                let bx = (x as u8).wrapping_add(scx) as u16;
+                let tile = self.read_vram_raw(bg_map + (by / 8) * 32 + bx / 8);
+                self.get_tile_pixel(tile, bx % 8, by % 8)
+            };
+            *pixel = (palette >> (color_idx * 2)) & 0x03;
         }
+
+        if drew_window {
+            self.window_line += 1;
+        }
+    }
+
+    fn get_tile_pixel(&self, tile_index: u8, px: u16, py: u16) -> u8 {
+        let tile_addr = if self.lcdc.is_set(BG_WIN_TILE_DATA) {
+            0x8000 + tile_index as u16 * 16
+        } else {
+            0x9000u16.wrapping_add(((tile_index as i8) as i16 * 16) as u16)
+        };
+        let lo = self.read_vram_raw(tile_addr + py * 2);
+        let hi = self.read_vram_raw(tile_addr + py * 2 + 1);
+        let bit = 7 - px;
+        (((hi >> bit) & 1) << 1) | ((lo >> bit) & 1)
     }
 
     fn render_objects(&mut self, line_buffer: &mut [u8; WIDTH]) {
         let screen_y = self.ly.read();
-        if self.lcdc.is_clear(1) {
+        if self.lcdc.is_clear(OBJ_ENABLE) {
             return;
         }
-        let object_height = if self.lcdc.is_set(2) { 16 } else { 8 };
-        let bg_enabled = self.lcdc.is_set(0);
+        let object_height = if self.lcdc.is_set(OBJ_SIZE) { 16 } else { 8 };
+        let bg_enabled = self.lcdc.is_set(BG_WIN_ENABLE);
 
         for [tile_y, tile_x, tile_id, attr] in self.selected_objects[0..self.selected_objects_len].iter() {
             let bg_priority = attr & 0x80 != 0;
@@ -358,8 +390,6 @@ impl Ppu {
         }
     }
 
-    fn render_window(&mut self, _line_buffer: &mut [u8; WIDTH]) {}
-
     fn next_line<const A: u16, const T: u8>(&mut self, ifl: &mut IORegister<A, T>) {
         self.ly += 1;
         match self.ly.read() {
@@ -371,6 +401,7 @@ impl Ppu {
             154 => {
                 self.ly.write_raw(0);
                 self.window_line = 0;
+                self.wy_triggered = false;
                 self.set_mode(PpuMode::OamScan, ifl);
             }
             0..144 => self.set_mode(PpuMode::OamScan, ifl),
@@ -379,7 +410,7 @@ impl Ppu {
     }
 
     pub fn ticks<const A: u16, const T: u8>(&mut self, dots: u8, ifl: &mut IORegister<A, T>) {
-        if self.lcdc.is_clear(LCDC_OFF) {
+        if self.lcdc.is_clear(PPU_OFF) {
             self.dot = 4;
             self.ly.write_raw(0);
             self.mode = PpuMode::HBlank;
