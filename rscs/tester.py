@@ -9,34 +9,43 @@ from pathlib import Path
 from typing import IO
 
 ROOT = Path(__file__).resolve().parent.parent
-TESTS = ROOT / "rscs" / "gb-test-roms"
+TESTS = ROOT / "rscs"
+MOONEYE_OK = bytes([3, 5, 8, 13, 21, 34])
+MOONEYE_KO = bytes([0x42] * 6)
 BIN = ROOT / "target" / "release" / "retro_emu"
 TIMEOUT = 2
 JOBS = 10
 ROMS = [
-    "interrupt_time/interrupt_time.gb",
-    "halt_bug.gb",
-    "instr_timing/instr_timing.gb",
-    "cpu_instrs/cpu_instrs.gb",
-    "cpu_instrs/individual/01-special.gb",
-    "cpu_instrs/individual/02-interrupts.gb",
-    "cpu_instrs/individual/03-op sp,hl.gb",
-    "cpu_instrs/individual/04-op r,imm.gb",
-    "cpu_instrs/individual/05-op rp.gb",
-    "cpu_instrs/individual/06-ld r,r.gb",
-    "cpu_instrs/individual/07-jr,jp,call,ret,rst.gb",
-    "cpu_instrs/individual/08-misc instrs.gb",
-    "cpu_instrs/individual/09-op r,r.gb",
-    "cpu_instrs/individual/10-bit ops.gb",
-    "cpu_instrs/individual/11-op a,(hl).gb",
-    "mem_timing/mem_timing.gb",
-    "mem_timing/individual/01-read_timing.gb",
-    "mem_timing/individual/02-write_timing.gb",
-    "mem_timing/individual/03-modify_timing.gb",
-    "mem_timing-2/mem_timing.gb",
-    "mem_timing-2/rom_singles/01-read_timing.gb",
-    "mem_timing-2/rom_singles/02-write_timing.gb",
-    "mem_timing-2/rom_singles/03-modify_timing.gb",
+    "gb-test-roms/interrupt_time/interrupt_time.gb",
+    "gb-test-roms/halt_bug.gb",
+    "gb-test-roms/instr_timing/instr_timing.gb",
+    "gb-test-roms/cpu_instrs/cpu_instrs.gb",
+    "gb-test-roms/cpu_instrs/individual/01-special.gb",
+    "gb-test-roms/cpu_instrs/individual/02-interrupts.gb",
+    "gb-test-roms/cpu_instrs/individual/03-op sp,hl.gb",
+    "gb-test-roms/cpu_instrs/individual/04-op r,imm.gb",
+    "gb-test-roms/cpu_instrs/individual/05-op rp.gb",
+    "gb-test-roms/cpu_instrs/individual/06-ld r,r.gb",
+    "gb-test-roms/cpu_instrs/individual/07-jr,jp,call,ret,rst.gb",
+    "gb-test-roms/cpu_instrs/individual/08-misc instrs.gb",
+    "gb-test-roms/cpu_instrs/individual/09-op r,r.gb",
+    "gb-test-roms/cpu_instrs/individual/10-bit ops.gb",
+    "gb-test-roms/cpu_instrs/individual/11-op a,(hl).gb",
+    "gb-test-roms/mem_timing/mem_timing.gb",
+    "gb-test-roms/mem_timing/individual/01-read_timing.gb",
+    "gb-test-roms/mem_timing/individual/02-write_timing.gb",
+    "gb-test-roms/mem_timing/individual/03-modify_timing.gb",
+    "gb-test-roms/mem_timing-2/mem_timing.gb",
+    "gb-test-roms/mem_timing-2/rom_singles/01-read_timing.gb",
+    "gb-test-roms/mem_timing-2/rom_singles/02-write_timing.gb",
+    "gb-test-roms/mem_timing-2/rom_singles/03-modify_timing.gb",
+    "test-roms/mooneye/mbc1/rom_512kb.gb",
+    "test-roms/mooneye/mbc1/ram_64kb.gb",
+    # "test-roms/mooneye/mbc2/ram.gb",
+    # "test-roms/mooneye/mbc5/rom_2Mb.gb",
+    "test-roms/mooneye/acceptance/div_timing.gb",
+    "test-roms/mooneye/acceptance/intr_timing.gb",
+    "test-roms/mooneye/acceptance/oam_dma/basic.gb",
 ]
 
 
@@ -60,10 +69,10 @@ def run(rom: Path) -> str:
     status = "TIMEOUT"
     while time.monotonic() < deadline:
         text = out.decode(errors="replace")
-        if "Passed" in text:
+        if "Passed" in text or MOONEYE_OK in out:
             status = "OK"
             break
-        if "Failed" in text:
+        if "Failed" in text or MOONEYE_KO in out:
             status = "KO"
             break
         if proc.poll() is not None:
