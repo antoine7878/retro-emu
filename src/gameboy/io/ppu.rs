@@ -60,6 +60,9 @@ pub struct Ppu {
     window_line: u16,
     wy_triggered: bool,
 
+    first_line: bool,
+    skip_frame: bool,
+
     selected_objects: [[u8; 4]; 10],
     selected_objects_len: usize,
 
@@ -92,6 +95,8 @@ impl Default for Ppu {
             redraw: false,
             window_line: 0,
             wy_triggered: false,
+            first_line: false,
+            skip_frame: false,
             lcdc: IORegister::default(),
             stat: IORegister::default(),
             scy: IORegister::default(),
@@ -174,7 +179,7 @@ impl Ppu {
             // TODO: DMA CGB
             map::DMA_START..map::DMA_END => (),
             map::PAL_START..map::PAL_END => (),
-            map::LCDC => self.lcdc.write(value),
+            map::LCDC => self.write_lcdc(value),
             map::STAT => self.stat.write(value),
             map::SCY => self.scy.write(value),
             map::SCX => self.scx.write(value),
@@ -189,6 +194,39 @@ impl Ppu {
             _ => unreachable!("Address not in PPU"),
         }
     }
+
+    fn write_lcdc(&mut self, value: u8) {
+        let was_on = self.lcdc.is_set(PPU_OFF);
+        self.lcdc.write(value);
+        match (was_on, self.lcdc.is_set(PPU_OFF)) {
+            (true, false) => self.lcd_off(),
+            (false, true) => self.lcd_on(),
+            _ => (),
+        }
+    }
+
+    fn lcd_off(&mut self) {
+        self.dot = 0;
+        self.ly.write_raw(0);
+        self.mode = PpuMode::HBlank;
+        self.stat_line = false;
+        self.window_line = 0;
+        self.wy_triggered = false;
+        self.first_line = false;
+        self.skip_frame = false;
+        self.pixels = [[PALETTE[0]; WIDTH]; HEIGHT];
+        self.redraw = true;
+    }
+
+    fn lcd_on(&mut self) {
+        self.dot = 4;
+        self.ly.write_raw(0);
+        self.mode = PpuMode::HBlank;
+        self.first_line = true;
+        self.skip_frame = true;
+    }
+
+    const fn end_dot(&self) -> u16 { if self.first_line { PpuMode::OamScan.end_dot() } else { self.mode.end_dot() } }
 
     pub fn write_vram(&mut self, addr: u16, value: u8) {
         if self.mode != PpuMode::Drawing {
@@ -243,8 +281,13 @@ impl Ppu {
 
     fn tick(&mut self, ifl: &mut InterruptFlag) {
         self.dot += 1;
-        if self.dot == self.mode.end_dot() {
+        if self.dot == self.end_dot() {
             match self.mode {
+                PpuMode::HBlank if self.first_line => {
+                    self.first_line = false;
+                    self.scan_oam();
+                    self.set_mode(PpuMode::Drawing, ifl);
+                }
                 PpuMode::OamScan => {
                     self.scan_oam();
                     self.set_mode(PpuMode::Drawing, ifl);
@@ -373,7 +416,7 @@ impl Ppu {
             144 => {
                 self.set_mode(PpuMode::VBlank, ifl);
                 ifl.set(0);
-                self.redraw = true;
+                self.redraw = !std::mem::take(&mut self.skip_frame);
             }
             154 => {
                 self.ly.write_raw(0);
@@ -388,12 +431,9 @@ impl Ppu {
 
     pub fn ticks(&mut self, dots: u8, ifl: &mut InterruptFlag) {
         if self.lcdc.is_clear(PPU_OFF) {
-            self.dot = 4;
-            self.ly.write_raw(0);
-            self.mode = PpuMode::HBlank;
             return;
         }
-        if self.dot + (dots as u16) < self.mode.end_dot() {
+        if self.dot + (dots as u16) < self.end_dot() {
             self.dot += dots as u16;
             self.update_stat_line(ifl);
             return;
