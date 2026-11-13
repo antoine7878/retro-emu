@@ -1,6 +1,4 @@
-# ROM="./rscs/tetris.gb"
-# ROM="./rscs/gb-test-roms/instr_timing/instr_timing.gb"
-ROM="./rscs/gb-test-roms/interrupt_time/interrupt_time.gb"
+ROM="./rscs/tetris.gb
 
 test:
 	cargo run --release -- $(ROM) -t 0

@@ -7,7 +7,22 @@ pub const HEIGHT: usize = 144;
 
 const LCDC_OFF: u8 = 7;
 
-const PALETTE_ORIGNAL: [[u8; 3]; 4] = [[0x2A, 0x41, 0x39], [0x7B, 0x82, 0x0F], [0x5A, 0x79, 0x42], [0x39, 0x59, 0x4A]];
+const fn palette(brightness: u8) -> [[u8; 3]; 4] {
+    const BASE: [[u8; 3]; 4] = [[0x9B, 0xBC, 0x0F], [0x8B, 0xAC, 0x0F], [0x30, 0x62, 0x30], [0x0F, 0x38, 0x0F]];
+    let mut out = [[0; 3]; 4];
+    let mut i = 0;
+    while i < 4 {
+        let mut c = 0;
+        while c < 3 {
+            out[i][c] = (BASE[i][c] as u16 * brightness as u16 / 255) as u8;
+            c += 1;
+        }
+        i += 1;
+    }
+    out
+}
+
+const PALETTE_ORIGINAL: [[u8; 3]; 4] = palette(255);
 
 #[derive(PartialEq, Clone, Eq)]
 pub enum PpuMode {
@@ -250,6 +265,7 @@ impl Ppu {
                 }
             }
         }
+        self.selected_objects[..self.selected_objects_len].sort_by_key(|o| o[1]);
     }
 
     fn render_scanline(&mut self) {
@@ -258,7 +274,7 @@ impl Ppu {
         self.render_window(&mut line_buffer);
         self.render_objects(&mut line_buffer);
         for (x, id) in line_buffer.iter().enumerate() {
-            self.pixels[self.ly.read() as usize][x] = PALETTE_ORIGNAL[*id as usize];
+            self.pixels[self.ly.read() as usize][x] = PALETTE_ORIGINAL[*id as usize];
         }
     }
 
@@ -267,7 +283,7 @@ impl Ppu {
         let pixel_row = &mut self.pixels[screen_y as usize];
 
         if self.lcdc.is_clear(0) {
-            pixel_row.iter_mut().for_each(|pixel| *pixel = PALETTE_ORIGNAL[0]);
+            pixel_row.iter_mut().for_each(|pixel| *pixel = PALETTE_ORIGINAL[0]);
             return;
         }
 
@@ -303,10 +319,13 @@ impl Ppu {
         if self.lcdc.is_clear(1) {
             return;
         }
-        let object_height = if self.lcdc.is_set(2) { 8 } else { 16 };
-        for [tile_y, tile_x, tile_id, attr] in self.selected_objects[0..self.selected_objects_len].iter() {
+        let object_height = if self.lcdc.is_set(2) { 16 } else { 8 };
+        let objects = &self.selected_objects[0..self.selected_objects_len];
+        for [tile_y, tile_x, tile_id, attr] in objects.iter().rev() {
             // TODO: object priority
-            // let priority = attr & 0x80 != 0;
+            if attr & 0x80 > 0 {
+                continue;
+            }
             let flip_y = attr & 0x40 != 0;
             let flip_x = attr & 0x20 != 0;
             let opb_1 = attr & 0x10 != 0;
