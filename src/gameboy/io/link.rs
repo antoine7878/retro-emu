@@ -1,6 +1,7 @@
 use std::io::Write;
 
 use crate::gameboy::config::ConsoleType;
+use crate::gameboy::io::interrupt::InterruptFlag;
 use crate::gameboy::memory::io_reg::{IOReg, IORegister};
 use crate::gameboy::memory::map;
 
@@ -49,7 +50,7 @@ impl Link {
         }
     }
 
-    pub fn tick(&mut self, ifl: &mut IORegister<{ map::IF }, 0x1F>) {
+    pub fn tick(&mut self, ifl: &mut InterruptFlag) {
         if self.remaining == 0 {
             return;
         }

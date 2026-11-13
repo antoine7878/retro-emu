@@ -1,4 +1,5 @@
 use crate::gameboy::config::ConsoleType;
+use crate::gameboy::io::interrupt::InterruptFlag;
 use crate::gameboy::memory::io_reg::{IOReg, IORegister};
 use crate::gameboy::memory::map;
 
@@ -51,7 +52,7 @@ impl Timer {
     const CLOCKS: [u8; 4] = [255, 3, 15, 63];
     fn reset_tima_clock(&mut self) { self.tima_clock = Self::CLOCKS[self.tac.read_raw() as usize & 0b11]; }
 
-    pub fn tick(&mut self, ifl: &mut IORegister<{ map::IF }, 0x1F>) {
+    pub fn tick(&mut self, ifl: &mut InterruptFlag) {
         self.tick_div();
         if self.tac.read_raw() & 0b100 == 0 {
             return;
@@ -73,7 +74,7 @@ impl Timer {
         }
     }
 
-    fn tick_tima(&mut self, ifl: &mut IORegister<{ map::IF }, 0x1F>) {
+    fn tick_tima(&mut self, ifl: &mut InterruptFlag) {
         if self.tima.read_raw() == 0xFF {
             self.tima.write_raw(self.tma.read_raw());
             ifl.set(2);

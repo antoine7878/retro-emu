@@ -2,10 +2,12 @@ use crate::gameboy::config::ConsoleType;
 use crate::gameboy::memory::io_reg::{IOReg, IORegister};
 use crate::gameboy::memory::map;
 
+pub type InterruptFlag = IORegister<{ map::IF }, 0x1F>;
+
 #[derive(Default)]
 pub struct Interrupter {
     ie: IORegister<{ map::IE }, 0xFF>,
-    ifl: IORegister<{ map::IF }, 0x1F>,
+    ifl: InterruptFlag,
 }
 
 impl Interrupter {
@@ -33,5 +35,5 @@ impl Interrupter {
         }
     }
 
-    pub fn ifl_mut(&mut self) -> &mut IORegister<{ map::IF }, 0x1F> { &mut self.ifl }
+    pub fn ifl_mut(&mut self) -> &mut InterruptFlag { &mut self.ifl }
 }
