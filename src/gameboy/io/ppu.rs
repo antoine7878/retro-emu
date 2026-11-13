@@ -6,6 +6,7 @@ pub const WIDTH: usize = 160;
 pub const HEIGHT: usize = 144;
 
 const LCDC_OFF: u8 = 7;
+const CLAIMED: u8 = 0x80;
 
 const fn palette(brightness: u8) -> [[u8; 3]; 4] {
     const BASE: [[u8; 3]; 4] = [[0x9B, 0xBC, 0x0F], [0x8B, 0xAC, 0x0F], [0x30, 0x62, 0x30], [0x0F, 0x38, 0x0F]];
@@ -274,7 +275,7 @@ impl Ppu {
         self.render_window(&mut line_buffer);
         self.render_objects(&mut line_buffer);
         for (x, id) in line_buffer.iter().enumerate() {
-            self.pixels[self.ly.read() as usize][x] = PALETTE_ORIGINAL[*id as usize];
+            self.pixels[self.ly.read() as usize][x] = PALETTE_ORIGINAL[(*id & 0b11) as usize];
         }
     }
 
@@ -320,12 +321,10 @@ impl Ppu {
             return;
         }
         let object_height = if self.lcdc.is_set(2) { 16 } else { 8 };
-        let objects = &self.selected_objects[0..self.selected_objects_len];
-        for [tile_y, tile_x, tile_id, attr] in objects.iter().rev() {
-            // TODO: object priority
-            if attr & 0x80 > 0 {
-                continue;
-            }
+        let bg_enabled = self.lcdc.is_set(0);
+
+        for [tile_y, tile_x, tile_id, attr] in self.selected_objects[0..self.selected_objects_len].iter() {
+            let bg_priority = attr & 0x80 != 0;
             let flip_y = attr & 0x40 != 0;
             let flip_x = attr & 0x20 != 0;
             let opb_1 = attr & 0x10 != 0;
@@ -348,10 +347,13 @@ impl Ppu {
                 let Some(x) = (tile_x + lx).checked_sub(8).filter(|&x| x < WIDTH) else { continue };
                 let bit_index = if flip_x { lx } else { 7 - lx };
                 let color_id = (((high_byte >> bit_index) & 1) << 1) | ((low_byte >> bit_index) & 1);
-                if color_id == 0 {
+                if color_id == 0 || line_buffer[x] & CLAIMED > 0 {
                     continue;
                 }
-                line_buffer[x] = (palette >> (color_id * 2)) & 0b11;
+                if bg_priority && bg_enabled && line_buffer[x] != 0 {
+                    continue;
+                }
+                line_buffer[x] = CLAIMED | ((palette >> (color_id * 2)) & 0b11);
             }
         }
     }

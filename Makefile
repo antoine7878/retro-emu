@@ -1,4 +1,4 @@
-ROM="./rscs/tetris.gb
+ROM=rscs/tetris.gb
 
 test:
 	cargo run --release -- $(ROM) -t 0
