@@ -190,4 +190,5 @@ impl Bus {
     pub fn drain_accesses(&mut self) -> std::vec::Drain<'_, MemAccess> { self.accesses.drain(..) }
     pub fn cartridge(&self) -> &Cartridge { &self.cartridge }
     pub fn joypad(&self) -> &Joypad { &self.joypad }
+    pub fn joypad_mut(&mut self) -> &mut Joypad { &mut self.joypad }
 }

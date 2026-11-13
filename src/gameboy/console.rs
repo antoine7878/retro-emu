@@ -1,6 +1,7 @@
 use crate::gameboy::config::Config;
 use crate::gameboy::cpu::Cpu;
 use crate::gameboy::cpu::instruction::Instruction;
+use crate::gameboy::io::joypad::Button;
 use crate::gameboy::memory::bus::Bus;
 use crate::gameboy::monitor::Monitor;
 use crate::gameboy::sram_output::SramOutput;
@@ -91,4 +92,6 @@ impl GameBoy {
 
     pub fn set_trace(&mut self, on: bool) { self.bus.set_trace(on); }
     pub fn bus(&self) -> &Bus { &self.bus }
+    pub fn press(&mut self, button: Button) { self.bus.joypad_mut().press(button); }
+    pub fn release(&mut self, button: Button) { self.bus.joypad_mut().release(button); }
 }

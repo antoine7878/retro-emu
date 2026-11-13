@@ -14,7 +14,7 @@ use sdl2::{EventPump, Sdl};
 use crate::cli::Args;
 use crate::debugger::prompt::{self, Prompt};
 use crate::debugger::{DebugAction, Debugger, PROMPT, StopReason};
-use crate::gameboy::{CYCLES_PER_FRAME, GameBoy, HEIGHT, WIDTH};
+use crate::gameboy::{Button, CYCLES_PER_FRAME, GameBoy, HEIGHT, WIDTH};
 
 struct FpsCounter {
     window_start: Instant,
@@ -38,6 +38,12 @@ impl FpsCounter {
         *self = Self { start_cycle: cycle, ..Self::default() };
         Some(fps)
     }
+}
+
+#[derive(PartialEq)]
+enum Input {
+    Continue,
+    Quit,
 }
 
 enum Mode {
@@ -132,79 +138,126 @@ impl Frontend {
     }
 
     pub fn run(&mut self, game_boy: &mut GameBoy) -> Result<(), Box<dyn Error>> {
-        let rom_name = game_boy.bus().cartridge().header().rom_name.as_str().trim().to_lowercase();
-        let _ = self.canvas.window_mut().set_title(&format!("{rom_name}"));
+        self.set_title(game_boy, None);
         if self.dbg.is_some() {
             game_boy.set_trace(true);
         }
         let mut next_frame = Instant::now();
-        'running: loop {
+        loop {
             next_frame += game_boy.config.frame_time.unwrap_or_default();
-
-            let mut pause_requested = false;
-            for event in self.event_pump.poll_iter() {
-                match event {
-                    Event::Quit { .. } | Event::KeyDown { scancode: Some(Scancode::Escape), .. } => break 'running,
-                    Event::KeyDown { scancode: Some(Scancode::P), repeat: false, .. } => pause_requested = true,
-                    _ => {}
-                }
+            if self.poll_events(game_boy) == Input::Quit {
+                break;
             }
-            if pause_requested && self.dbg.is_some() && !matches!(self.mode, Mode::Paused) {
-                self.stop(StopReason::Pause, game_boy);
-            }
-
-            while let Ok(mut cmd) = self.commands.try_recv() {
-                self.prompt_pending = false;
-                if cmd.is_empty() {
-                    if let Mode::Tracing(_) = self.mode {
-                        self.pause(game_boy);
-                        continue;
-                    }
-                    cmd = self.last_cmd.clone();
-                }
-                self.handle_command(&cmd, game_boy);
-            }
-
-            match self.mode {
-                Mode::Running => {
-                    if let Some(reason) = game_boy.run_frame(self.dbg.as_mut()) {
-                        self.stop(reason, game_boy);
-                    }
-                }
-                Mode::Tracing(n) => {
-                    if let Some(dbg) = self.dbg.as_mut() {
-                        dbg.set_step_budget(n);
-                    }
-                    match game_boy.run_frame(self.dbg.as_mut()) {
-                        None | Some(StopReason::Step) => {
-                            if let Some(dbg) = &self.dbg {
-                                dbg.draw_live(game_boy);
-                            }
-                        }
-                        Some(reason) => self.stop(reason, game_boy),
-                    }
-                }
-                Mode::Paused => {}
-            }
-
+            self.process_commands(game_boy);
+            self.step(game_boy);
             self.draw(game_boy)?;
-
-            if let Some((emu, lcd)) = self.fps.tick(game_boy.cycle_count()) {
-                let rom_name = game_boy.bus().cartridge().header().rom_name.as_str().trim().to_lowercase();
-                let _ = self.canvas.window_mut().set_title(&format!("{rom_name} - {emu:.0} fps ({lcd:.1})"));
-            }
-
-            if let Some(frame_time) = game_boy.config.frame_time {
-                let now = Instant::now();
-                match next_frame.checked_duration_since(now) {
-                    Some(remaining) => sleep(remaining),
-                    None if now - next_frame > frame_time * 5 => next_frame = now,
-                    None => {}
-                }
-            }
+            self.update_fps(game_boy);
+            Self::throttle(&mut next_frame, game_boy.config.frame_time);
         }
         prompt::restore_terminal();
         Ok(())
+    }
+
+    fn poll_events(&mut self, game_boy: &mut GameBoy) -> Input {
+        let mut pause_requested = false;
+        for event in self.event_pump.poll_iter() {
+            match event {
+                Event::Quit { .. } | Event::KeyDown { scancode: Some(Scancode::Escape), .. } => return Input::Quit,
+                Event::KeyDown { scancode: Some(Scancode::P), repeat: false, .. } => pause_requested = true,
+                Event::KeyDown { scancode: Some(scancode), repeat: false, .. } => {
+                    if let Some(button) = Self::button_for(scancode) {
+                        game_boy.press(button);
+                    }
+                }
+                Event::KeyUp { scancode: Some(scancode), .. } => {
+                    if let Some(button) = Self::button_for(scancode) {
+                        game_boy.release(button);
+                    }
+                }
+                _ => {}
+            }
+        }
+        if pause_requested && self.dbg.is_some() && !matches!(self.mode, Mode::Paused) {
+            self.stop(StopReason::Pause, game_boy);
+        }
+        Input::Continue
+    }
+
+    fn button_for(scancode: Scancode) -> Option<Button> {
+        Some(match scancode {
+            Scancode::E => Button::Up,
+            Scancode::D => Button::Down,
+            Scancode::S => Button::Left,
+            Scancode::F => Button::Right,
+            Scancode::J => Button::B,
+            Scancode::K => Button::A,
+            Scancode::U => Button::Start,
+            Scancode::I => Button::Select,
+            _ => return None,
+        })
+    }
+
+    fn process_commands(&mut self, game_boy: &mut GameBoy) {
+        while let Ok(cmd) = self.commands.try_recv() {
+            self.prompt_pending = false;
+            if cmd.is_empty() && matches!(self.mode, Mode::Tracing(_)) {
+                self.pause(game_boy);
+                continue;
+            }
+            let cmd = if cmd.is_empty() { self.last_cmd.clone() } else { cmd };
+            self.handle_command(&cmd, game_boy);
+        }
+    }
+
+    fn step(&mut self, game_boy: &mut GameBoy) {
+        match self.mode {
+            Mode::Running => {
+                if let Some(reason) = game_boy.run_frame(self.dbg.as_mut()) {
+                    self.stop(reason, game_boy);
+                }
+            }
+            Mode::Tracing(budget) => self.trace_frame(budget, game_boy),
+            Mode::Paused => {}
+        }
+    }
+
+    fn trace_frame(&mut self, budget: u32, game_boy: &mut GameBoy) {
+        if let Some(dbg) = self.dbg.as_mut() {
+            dbg.set_step_budget(budget);
+        }
+        match game_boy.run_frame(self.dbg.as_mut()) {
+            None | Some(StopReason::Step) => {
+                if let Some(dbg) = &self.dbg {
+                    dbg.draw_live(game_boy);
+                }
+            }
+            Some(reason) => self.stop(reason, game_boy),
+        }
+    }
+
+    fn set_title(&mut self, game_boy: &GameBoy, fps: Option<(f64, f64)>) {
+        let rom = game_boy.bus().cartridge().header().rom_name.as_str().trim().to_lowercase();
+        let title = match fps {
+            Some((emu, lcd)) => format!("{rom} - {emu:.0} fps ({lcd:.1})"),
+            None => rom,
+        };
+        let _ = self.canvas.window_mut().set_title(&title);
+    }
+
+    fn update_fps(&mut self, game_boy: &GameBoy) {
+        if let Some(fps) = self.fps.tick(game_boy.cycle_count()) {
+            self.set_title(game_boy, Some(fps));
+        }
+    }
+
+    fn throttle(next_frame: &mut Instant, frame_time: Option<Duration>) {
+        let Some(frame_time) = frame_time else { return };
+        let now = Instant::now();
+        match next_frame.checked_duration_since(now) {
+            Some(remaining) => sleep(remaining),
+            None if now - *next_frame > frame_time * 5 => *next_frame = now,
+            None => {}
+        }
     }
 
     fn draw(&mut self, game_boy: &mut GameBoy) -> Result<(), Box<dyn Error>> {

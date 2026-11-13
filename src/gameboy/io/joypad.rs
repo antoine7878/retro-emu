@@ -1,3 +1,4 @@
+#![allow(unused)]
 use crate::gameboy::config::ConsoleType;
 use crate::gameboy::memory::io_reg::IOReg;
 use crate::gameboy::memory::map;
@@ -72,19 +73,18 @@ impl Default for Joypad {
 
 impl Joypad {
     pub fn reset(&mut self, mode: &ConsoleType) {
-        self.select = mode.initial_value(map::JOYPAD);
-        self.dpad = mode.initial_value(map::JOYPAD);
-        self.buttons = mode.initial_value(map::JOYPAD);
+        self.select = mode.initial_value(map::JOYPAD) & SELECT_MASK;
+        self.dpad = ALL_RELEASED;
+        self.buttons = ALL_RELEASED;
     }
 
     fn group(&mut self, button: Button) -> &mut u8 {
         if button.is_action() { &mut self.buttons } else { &mut self.dpad }
     }
 
-    pub fn press(&mut self, button: Button) -> bool {
+    pub fn press(&mut self, button: Button) {
         let before = self.read();
         *self.group(button) &= !button.line();
-        before & !self.read() & LINE_MASK != 0
     }
 
     pub fn release(&mut self, button: Button) { *self.group(button) |= button.line(); }
