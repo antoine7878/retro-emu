@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use crate::gameboy::memory::io_reg::IORegister;
 use crate::gameboy::memory::map;
 

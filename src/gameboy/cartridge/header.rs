@@ -41,7 +41,7 @@ pub struct CartridgeHeader {
     pub rom_bank_count: u16,
     pub ram_bank_count: u8,
     pub rom_name: String,
-    pub cgb_mode: CGMode,
+    pub _cgb_mode: CGMode,
     pub mbc_kind: MbcKind,
     pub addons: HashSet<Addon>,
 }
@@ -54,7 +54,7 @@ impl CartridgeHeader {
         let cgb_mode = Self::mode(rom)?;
         let (mbc_kind, addons) = Self::cartridge_type(rom)?;
         let ram_bank_count = if ram_bank_count == 0 && addons.contains(&Addon::Ram) { 1 } else { ram_bank_count };
-        Some(CartridgeHeader { rom_bank_count, ram_bank_count, rom_name, cgb_mode, mbc_kind, addons })
+        Some(CartridgeHeader { rom_bank_count, ram_bank_count, rom_name, _cgb_mode: cgb_mode, mbc_kind, addons })
     }
 
     fn rom_name(rom: &[u8]) -> Option<String> {
