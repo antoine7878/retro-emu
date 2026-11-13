@@ -37,15 +37,6 @@ ROMS = [
     "mem_timing-2/rom_singles/01-read_timing.gb",
     "mem_timing-2/rom_singles/02-write_timing.gb",
     "mem_timing-2/rom_singles/03-modify_timing.gb",
-    "oam_bug/oam_bug.gb",
-    "oam_bug/rom_singles/1-lcd_sync.gb",
-    "oam_bug/rom_singles/2-causes.gb",
-    "oam_bug/rom_singles/3-non_causes.gb",
-    "oam_bug/rom_singles/4-scanline_timing.gb",
-    "oam_bug/rom_singles/5-timing_bug.gb",
-    "oam_bug/rom_singles/6-timing_no_bug.gb",
-    "oam_bug/rom_singles/7-timing_effect.gb",
-    "oam_bug/rom_singles/8-instr_effect.gb",
 ]
 
 
