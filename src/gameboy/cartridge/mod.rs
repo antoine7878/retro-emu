@@ -37,12 +37,17 @@ impl Cartridge {
         }
         if self.header.has_battery() {
             let mut ram = Vec::new();
-            let Ok(()) = file.read_exact(&mut ram) else { return };
+            let Ok(_) = file.read_to_end(&mut ram) else { return };
             self.mbc.load_ram(ram);
         }
     }
 
     pub fn save_ram(&self) {
+        if self.header.has_rtc() {
+            let Ok(mut file) = File::create(&self.file_name) else { return };
+            let fake_clock = [0u8; 5];
+            let Ok(()) = file.write_all(&fake_clock) else { return };
+        }
         if self.header.has_battery() {
             let ram = self.mbc.ram();
             let Ok(mut file) = File::create(&self.file_name) else { return };

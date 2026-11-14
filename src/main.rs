@@ -21,6 +21,7 @@ fn main() {
 
 fn run() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse()?;
+    sdl2::hint::set("SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS", "1");
     let sdl = sdl2::init()?;
 
     let config = Config::new(args.max_fps, args.serial_print)?;

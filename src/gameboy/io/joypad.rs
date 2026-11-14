@@ -14,7 +14,7 @@ const LINE_1: u8 = 0b0000_0010;
 const LINE_2: u8 = 0b0000_0100;
 const LINE_3: u8 = 0b0000_1000;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Button {
     Start,
     Select,
