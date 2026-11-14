@@ -32,7 +32,7 @@ impl Frontend {
 
     pub fn run(&mut self, game_boy: &mut GameBoy) -> Result<(), Box<dyn Error>> {
         let mut pacer = Pacer::new(game_boy);
-        self.video.set_title(game_boy, pacer.turbo, None);
+        self.video.set_title(game_boy, pacer.speed(), None);
         game_boy.set_trace(self.debug.is_some());
         while self.handle_input(game_boy, &mut pacer) {
             pacer.begin_frame(game_boy);
@@ -40,7 +40,7 @@ impl Frontend {
             catch_unwind(AssertUnwindSafe(|| self.step(game_boy))).map_err(|_| Self::crash(game_boy))?;
             self.input.rumble(game_boy.take_rumble());
             self.video.draw(game_boy)?;
-            self.video.update_fps(game_boy, pacer.turbo);
+            self.video.update_fps(game_boy, pacer.speed());
             pacer.throttle(game_boy);
         }
         prompt::restore_terminal();
@@ -53,9 +53,15 @@ impl Frontend {
                 Action::Quit => return false,
                 Action::Press(button) => game_boy.press(button),
                 Action::Release(button) => game_boy.release(button),
-                Action::ToggleTurbo => {
-                    pacer.toggle_turbo(game_boy);
-                    self.video.set_title(game_boy, pacer.turbo, None);
+                Action::ToggleTurbo(turbo) => {
+                    if pacer.toggle_turbo(turbo, game_boy) {
+                        self.video.set_title(game_boy, pacer.speed(), None);
+                    }
+                }
+                Action::HoldTurbo(turbo, held) => {
+                    if pacer.hold_turbo(turbo, held, game_boy) {
+                        self.video.set_title(game_boy, pacer.speed(), None);
+                    }
                 }
             }
         }

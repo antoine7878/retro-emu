@@ -6,7 +6,7 @@ use sdl2::pixels::PixelFormatEnum;
 use sdl2::render::{Canvas, Texture};
 use sdl2::video::Window;
 
-use super::timing::TURBO_FACTOR;
+use super::timing::{Speed, TURBO_FACTOR};
 use super::{FRAME_RATE, SCALE};
 use crate::gameboy::{CYCLES_PER_FRAME, GameBoy, HEIGHT, WIDTH};
 
@@ -59,9 +59,13 @@ impl Video {
 
     pub fn raise(&mut self) { self.canvas.window_mut().raise(); }
 
-    pub fn set_title(&mut self, game_boy: &GameBoy, turbo: bool, fps: Option<(f64, f64)>) {
+    pub fn set_title(&mut self, game_boy: &GameBoy, speed: Speed, fps: Option<(f64, f64)>) {
         let rom = game_boy.bus().cartridge().header().rom_name.as_str().trim().to_lowercase();
-        let speed = if turbo { format!(" x{TURBO_FACTOR}") } else { String::new() };
+        let speed = match speed {
+            Speed::Normal => String::new(),
+            Speed::Fast => format!(" x{TURBO_FACTOR}"),
+            Speed::Unlimited => " max".to_string(),
+        };
         let title = match fps {
             Some((emu, lcd)) => format!("{rom} - {emu:.0} fps ({lcd:.1}){speed}"),
             None => format!("{rom}{speed}"),
@@ -69,9 +73,9 @@ impl Video {
         let _ = self.canvas.window_mut().set_title(&title);
     }
 
-    pub fn update_fps(&mut self, game_boy: &GameBoy, turbo: bool) {
+    pub fn update_fps(&mut self, game_boy: &GameBoy, speed: Speed) {
         if let Some(fps) = self.fps.tick(game_boy.cycle_count()) {
-            self.set_title(game_boy, turbo, Some(fps));
+            self.set_title(game_boy, speed, Some(fps));
         }
     }
 

@@ -9,10 +9,18 @@ use crate::gameboy::Button;
 
 const DEAD_ZONE: i16 = 8000;
 const M_DEAD_ZONE: i16 = -DEAD_ZONE;
+const TRIGGER_THRESHOLD: i16 = i16::MAX / 2;
+
+#[derive(Clone, Copy)]
+pub enum Turbo {
+    Fast,
+    Unlimited,
+}
 
 pub enum Action {
     Quit,
-    ToggleTurbo,
+    ToggleTurbo(Turbo),
+    HoldTurbo(Turbo, bool),
     Press(Button),
     Release(Button),
 }
@@ -23,6 +31,8 @@ pub struct Input {
     controller: Option<GameController>,
     stick_x: Option<Button>,
     stick_y: Option<Button>,
+    trigger_left: bool,
+    trigger_right: bool,
     last_rumble: u16,
 }
 
@@ -34,6 +44,8 @@ impl Input {
             controller: None,
             stick_x: None,
             stick_y: None,
+            trigger_left: false,
+            trigger_right: false,
             last_rumble: 0,
         })
     }
@@ -45,11 +57,14 @@ impl Input {
                 Event::Quit { .. } | Event::KeyDown { scancode: Some(Scancode::Escape), .. } => out.push(Action::Quit),
                 Event::KeyDown { scancode: Some(s), repeat: false, .. } => out.extend(Self::key(s).map(Action::Press)),
                 Event::KeyUp { scancode: Some(s), .. } => out.extend(Self::key(s).map(Action::Release)),
-                Event::ControllerButtonDown { button: SdlButton::LeftShoulder | SdlButton::RightShoulder, .. } => {
-                    out.push(Action::ToggleTurbo)
+                Event::ControllerButtonDown { button, .. } => out.extend(Self::pad_action(button, true)),
+                Event::ControllerButtonUp { button, .. } => out.extend(Self::pad_action(button, false)),
+                Event::ControllerAxisMotion { axis: Axis::TriggerRight, value, .. } => {
+                    Self::trigger(&mut self.trigger_right, value, Turbo::Fast, &mut out)
                 }
-                Event::ControllerButtonDown { button, .. } => out.extend(Self::pad(button).map(Action::Press)),
-                Event::ControllerButtonUp { button, .. } => out.extend(Self::pad(button).map(Action::Release)),
+                Event::ControllerAxisMotion { axis: Axis::TriggerLeft, value, .. } => {
+                    Self::trigger(&mut self.trigger_left, value, Turbo::Unlimited, &mut out)
+                }
                 Event::ControllerAxisMotion { axis: Axis::LeftX, value, .. } => {
                     Self::stick(&mut self.stick_x, value, Button::Left, Button::Right, &mut out)
                 }
@@ -90,6 +105,22 @@ impl Input {
         out.extend(held.take().map(Action::Release));
         out.extend(new.map(Action::Press));
         *held = new;
+    }
+
+    fn trigger(held: &mut bool, value: i16, turbo: Turbo, out: &mut Vec<Action>) {
+        let pressed = value > TRIGGER_THRESHOLD;
+        if pressed != *held {
+            *held = pressed;
+            out.push(Action::HoldTurbo(turbo, pressed));
+        }
+    }
+
+    fn pad_action(button: SdlButton, pressed: bool) -> Option<Action> {
+        match button {
+            SdlButton::RightShoulder => pressed.then_some(Action::ToggleTurbo(Turbo::Fast)),
+            SdlButton::LeftShoulder => pressed.then_some(Action::ToggleTurbo(Turbo::Unlimited)),
+            _ => Self::pad(button).map(if pressed { Action::Press } else { Action::Release }),
+        }
     }
 
     fn pad(button: SdlButton) -> Option<Button> {
