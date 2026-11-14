@@ -23,6 +23,7 @@ pub enum Action {
     HoldTurbo(Turbo, bool),
     Press(Button),
     Release(Button),
+    Reload(String),
 }
 
 pub struct Input {
@@ -54,6 +55,9 @@ impl Input {
         let mut out = Vec::new();
         for event in self.event_pump.poll_iter() {
             match event {
+                Event::DropFile { filename, .. } => {
+                    out.push(Action::Reload(filename));
+                }
                 Event::Quit { .. } | Event::KeyDown { scancode: Some(Scancode::Escape), .. } => out.push(Action::Quit),
                 Event::KeyDown { scancode: Some(s), repeat: false, .. } => out.extend(Self::key(s).map(Action::Press)),
                 Event::KeyUp { scancode: Some(s), .. } => out.extend(Self::key(s).map(Action::Release)),

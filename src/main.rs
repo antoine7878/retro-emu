@@ -3,8 +3,6 @@ mod debugger;
 mod frontend;
 mod gameboy;
 
-use std::fs;
-
 use frontend::Frontend;
 
 use cli::Args;
@@ -27,11 +25,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     let config = Config::new(args.serial_print)?;
     let mut game_boy = GameBoy::new(config);
 
-    let rom = match args.infiles.get(0) {
-        Some(file) => fs::read(file)?,
-        None => include_bytes!("./../rscs/error_roms/no_game.gb").to_vec(),
-    };
-    game_boy.load(rom);
+    game_boy.load_file(args.infiles.get(0))?;
     let mut front = Frontend::new(args, sdl)?;
     front.run(&mut game_boy)?;
     game_boy.bus().cartridge().save_ram();

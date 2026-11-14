@@ -63,6 +63,9 @@ impl Frontend {
                         self.video.set_title(game_boy, pacer.speed(), None);
                     }
                 }
+                Action::Reload(filename) => {
+                    let _ = game_boy.load_file(Some(&filename));
+                }
             }
         }
         true

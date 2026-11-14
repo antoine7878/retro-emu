@@ -1,3 +1,6 @@
+use std::fs;
+use std::path::PathBuf;
+
 use crate::gameboy::config::Config;
 use crate::gameboy::cpu::Cpu;
 use crate::gameboy::cpu::instruction::Instruction;
@@ -22,6 +25,28 @@ impl GameBoy {
         let cpu = Cpu::default();
         Self { cpu, bus, sram_output: SramOutput::default(), config }
     }
+
+    pub fn load_file(&mut self, filename: Option<&String>) -> Result<(), Box<dyn std::error::Error>> {
+        let Some(filename) = filename else { return self.load_rom_file(None) };
+        let buf = PathBuf::from(filename);
+        match buf.extension().unwrap().to_str().unwrap() {
+            "gb" | "gbc" => self.load_rom_file(Some(filename)),
+            "save" => self.load_save_file(),
+            "state" => self.load_state_file(),
+            _ => Ok(()),
+        }
+    }
+
+    fn load_rom_file(&mut self, filename: Option<&String>) -> Result<(), Box<dyn std::error::Error>> {
+        let rom = match filename {
+            Some(file) => fs::read(file)?,
+            None => include_bytes!("./../../rscs/error_roms/no_game.gb").to_vec(),
+        };
+        self.load(rom);
+        Ok(())
+    }
+    fn load_save_file(&mut self) -> Result<(), Box<dyn std::error::Error>> { Ok(()) }
+    fn load_state_file(&mut self) -> Result<(), Box<dyn std::error::Error>> { Ok(()) }
 
     pub fn load(&mut self, rom: Vec<u8>) {
         self.bus.reset(&self.config.mode, rom);
