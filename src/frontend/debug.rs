@@ -49,12 +49,6 @@ impl DebugSession {
         self.terminal = terminal_id();
     }
 
-    pub fn request_pause(&mut self, game_boy: &GameBoy) {
-        if !matches!(self.mode, Mode::Paused) {
-            self.stop(StopReason::Pause, game_boy);
-        }
-    }
-
     pub fn next_command(&mut self, game_boy: &GameBoy) -> Option<Effect> {
         let cmd = self.commands.try_recv().ok()?;
         self.prompt_pending = false;

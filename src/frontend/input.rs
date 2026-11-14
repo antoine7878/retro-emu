@@ -12,7 +12,6 @@ const M_DEAD_ZONE: i16 = -DEAD_ZONE;
 
 pub enum Action {
     Quit,
-    Pause,
     ToggleTurbo,
     Press(Button),
     Release(Button),
@@ -42,7 +41,6 @@ impl Input {
         for event in self.event_pump.poll_iter() {
             match event {
                 Event::Quit { .. } | Event::KeyDown { scancode: Some(Scancode::Escape), .. } => out.push(Action::Quit),
-                Event::KeyDown { scancode: Some(Scancode::P), repeat: false, .. } => out.push(Action::Pause),
                 Event::KeyDown { scancode: Some(s), repeat: false, .. } => out.extend(key(s).map(Action::Press)),
                 Event::KeyUp { scancode: Some(s), .. } => out.extend(key(s).map(Action::Release)),
                 Event::ControllerButtonDown { button: SdlButton::LeftShoulder | SdlButton::RightShoulder, .. } => {

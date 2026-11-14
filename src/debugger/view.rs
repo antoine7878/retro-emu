@@ -11,11 +11,10 @@ const PANEL_HEIGHT: usize = 12;
 const ASM_WIDTH: usize = 32;
 const REG_WIDTH: usize = 20;
 const CONSOLE_HEIGHT: usize = 10;
-const SHORTCUTS: [(&str, &str); 11] = [
+const SHORTCUTS: [(&str, &str); 10] = [
     ("c", "Continue"),
     ("s", "Step"),
     ("t", "Trace"),
-    ("P", "Pause (window)"),
     ("[ad][bw]", "Add/Delete Breakpoint/Watchpoint"),
     ("l", "List"),
     ("cls", "Clear"),

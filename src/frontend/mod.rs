@@ -56,11 +56,6 @@ impl Frontend {
                     pacer.toggle_turbo(game_boy);
                     self.video.set_title(game_boy, pacer.turbo, None);
                 }
-                Action::Pause => {
-                    if let Some(debug) = &mut self.debug {
-                        debug.request_pause(game_boy);
-                    }
-                }
             }
         }
         true
