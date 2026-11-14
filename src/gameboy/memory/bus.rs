@@ -125,7 +125,7 @@ impl Bus {
             map::PPU_START..map::PPU_END | map::VBK => self.ppu.write(addr, value),
             map::DMA_START..map::DMA_END | map::PAL_START..map::PAL_END => self.ppu.write(addr, value),
             map::HRAM_START..map::HRAM_END => self.hram[(addr - map::HRAM_START) as usize] = value,
-            map::TIMER_START..map::TIMER_END => self.timer.write(addr, value),
+            map::TIMER_START..map::TIMER_END => self.timer.write(addr, value, self.interrupter.ifl_mut()),
             // TODO: Audio
             map::AUDIO_START..map::AUDIO_END => (),
             map::WAVE_START..map::WAVE_END => (),

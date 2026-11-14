@@ -5,27 +5,25 @@ use crate::gameboy::memory::map;
 
 #[derive(Default)]
 pub struct Timer {
-    div: IORegister<{ map::DIV }, 0xFF>,
+    counter: u16,
     tima: IORegister<{ map::TIMA }, 0xFF>,
     tma: IORegister<{ map::TMA }, 0xFF>,
     tac: IORegister<{ map::TAC }, 0x07>,
-    tima_clock: u8,
-    div_clock: u8,
 }
 
 impl Timer {
+    const BITS: [u8; 4] = [9, 3, 5, 7];
+
     pub fn reset(&mut self, mode: &ConsoleType) {
-        self.div.reset(mode);
+        self.counter = (mode.initial_value(map::DIV) as u16) << 8;
         self.tima.reset(mode);
         self.tma.reset(mode);
         self.tac.reset(mode);
-        self.div_clock = 0;
-        self.reset_tima_clock();
     }
 
     pub fn read(&self, addr: u16) -> u8 {
         match addr {
-            map::DIV => self.div.read(),
+            map::DIV => (self.counter >> 8) as u8,
             map::TIMA => self.tima.read(),
             map::TMA => self.tma.read(),
             map::TAC => self.tac.read_raw(),
@@ -33,44 +31,30 @@ impl Timer {
         }
     }
 
-    pub fn write(&mut self, addr: u16, value: u8) {
+    pub fn write(&mut self, addr: u16, value: u8, ifl: &mut InterruptFlag) {
+        let old = self.signal();
         match addr {
-            map::DIV => {
-                self.div.write_raw(0);
-                self.div_clock = 0;
-            }
+            map::DIV => self.counter = 0,
             map::TIMA => self.tima.write(value),
             map::TMA => self.tma.write(value),
-            map::TAC => {
-                self.tac.write(value);
-                self.reset_tima_clock();
-            }
+            map::TAC => self.tac.write(value),
             _ => unreachable!(),
         }
+        if old && !self.signal() {
+            self.tick_tima(ifl);
+        }
     }
 
-    const CLOCKS: [u8; 4] = [255, 3, 15, 63];
-    fn reset_tima_clock(&mut self) { self.tima_clock = Self::CLOCKS[self.tac.read_raw() as usize & 0b11]; }
+    fn signal(&self) -> bool {
+        let tac = self.tac.read_raw();
+        tac & 0b100 != 0 && (self.counter >> Self::BITS[(tac & 0b11) as usize]) & 1 != 0
+    }
 
     pub fn tick(&mut self, ifl: &mut InterruptFlag) {
-        self.tick_div();
-        if self.tac.read_raw() & 0b100 == 0 {
-            return;
-        }
-        if self.tima_clock == 0 {
+        let old = self.signal();
+        self.counter = self.counter.wrapping_add(4);
+        if old && !self.signal() {
             self.tick_tima(ifl);
-            self.reset_tima_clock();
-        } else {
-            self.tima_clock -= 1;
-        }
-    }
-
-    fn tick_div(&mut self) {
-        if self.div_clock == 63 {
-            self.div += 1;
-            self.div_clock = 0;
-        } else {
-            self.div_clock += 1;
         }
     }
 
