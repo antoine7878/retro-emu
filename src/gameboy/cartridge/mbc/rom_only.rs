@@ -34,12 +34,7 @@ impl MBC for RomOnly {
 
     fn rom(&self) -> Vec<u8> { self.rom.clone() }
 
-    fn ram(&self) -> &[u8] {
-        match &self.ram {
-            Some(ram) => ram.as_slice(),
-            None => &[],
-        }
-    }
+    fn ram(&self) -> Vec<u8> { self.ram.map(|r| r.to_vec()).unwrap_or_default() }
 
     fn load_ram(&mut self, ram: Vec<u8>) {
         self.ram.as_mut().map(|r| {

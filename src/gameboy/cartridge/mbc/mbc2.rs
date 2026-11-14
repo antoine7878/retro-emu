@@ -45,7 +45,8 @@ impl MBC for Mbc2 {
     }
 
     fn rom(&self) -> Vec<u8> { self.rom.clone() }
-    fn ram(&self) -> &[u8] { self.ram.as_slice() }
+    fn ram(&self) -> Vec<u8> { self.ram.to_vec() }
+
     fn load_ram(&mut self, ram: Vec<u8>) {
         let mut ram = ram;
         ram.resize(RAM_SIZE, 0);

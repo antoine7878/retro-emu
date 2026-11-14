@@ -169,6 +169,7 @@ impl Bus {
         self.ppu.ticks(dots, self.interrupter.ifl_mut());
         self.timer.tick(self.interrupter.ifl_mut());
         self.link.tick(self.interrupter.ifl_mut());
+        self.cartridge.tick();
         if let Some((src, dst)) = self.dma.tick() {
             let byte = match src {
                 VRAM_START..VRAM_END => self.ppu.read_vram_dma(src),

@@ -54,7 +54,7 @@ impl MBC for Mbc1 {
     }
 
     fn rom(&self) -> Vec<u8> { self.rom.clone() }
-    fn ram(&self) -> &[u8] { self.ram.as_slice() }
+    fn ram(&self) -> Vec<u8> { self.ram.clone() }
 
     fn load_ram(&mut self, ram: Vec<u8>) {
         let mut ram = ram;

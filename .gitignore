@@ -1,13 +1,11 @@
 /target
 .DS_Store
 
-chip8-roms
-chip8-test-suite
-test-roms/
+rscs/blargg_test-roms/
+rscs/subject-test-roms/
+rscs/games/
 
-gb-test-roms/
-test-roms/
 todo*
-rscs/tetris.gb
+
 *.o
 *.sym
