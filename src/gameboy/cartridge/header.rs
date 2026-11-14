@@ -31,7 +31,7 @@ pub enum MbcKind {
 pub enum Addon {
     Ram,
     Battery,
-    Timer,
+    Rtc,
     Rumble,
     Sensor,
 }
@@ -85,8 +85,8 @@ impl CartridgeHeader {
             0x0B => (MbcKind::Mmm01, &[]),
             0x0C => (MbcKind::Mmm01, &[Ram]),
             0x0D => (MbcKind::Mmm01, &[Ram, Battery]),
-            0x0F => (MbcKind::Mbc3, &[Timer, Battery]),
-            0x10 => (MbcKind::Mbc3, &[Timer, Ram, Battery]),
+            0x0F => (MbcKind::Mbc3, &[Rtc, Battery]),
+            0x10 => (MbcKind::Mbc3, &[Rtc, Ram, Battery]),
             0x11 => (MbcKind::Mbc3, &[]),
             0x12 => (MbcKind::Mbc3, &[Ram]),
             0x13 => (MbcKind::Mbc3, &[Ram, Battery]),
@@ -136,4 +136,7 @@ impl CartridgeHeader {
             }
         }
     }
+
+    pub fn has_battery(&self) -> bool { self.addons.contains(&Addon::Battery) }
+    pub fn has_rtc(&self) -> bool { self.addons.contains(&Addon::Rtc) }
 }

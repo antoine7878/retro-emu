@@ -189,6 +189,7 @@ impl Bus {
     pub fn set_serial_print(&mut self, on: bool) { self.link.set_print(on); }
     pub fn drain_accesses(&mut self) -> std::vec::Drain<'_, MemAccess> { self.accesses.drain(..) }
     pub fn cartridge(&self) -> &Cartridge { &self.cartridge }
+    pub fn cartridge_mut(&mut self) -> &mut Cartridge { &mut self.cartridge }
     pub fn joypad(&self) -> &Joypad { &self.joypad }
     pub fn joypad_mut(&mut self) -> &mut Joypad { &mut self.joypad }
 }

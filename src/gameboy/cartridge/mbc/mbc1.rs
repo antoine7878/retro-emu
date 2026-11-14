@@ -52,6 +52,9 @@ impl MBC for Mbc1 {
     }
 
     fn rom(&self) -> Vec<u8> { self.rom.clone() }
+    fn ram(&self) -> &[u8] { self.ram.as_slice() }
+    fn load_ram(&mut self, ram: Vec<u8>) { self.ram = ram; }
+    fn load_rtc(&mut self, _: [u8; 5]) { unreachable!() }
 }
 
 impl Mbc1 {
@@ -82,6 +85,6 @@ impl Mbc1 {
             1 => self.bank2.read() & 0x03,
             _ => unreachable!(),
         };
-        bank as usize & (self.ram_bank_count - 1)
+        bank as usize & self.ram_bank_count.saturating_sub(1)
     }
 }

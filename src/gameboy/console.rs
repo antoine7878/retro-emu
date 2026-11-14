@@ -27,6 +27,7 @@ impl GameBoy {
         self.bus.reset(&self.config.mode, rom);
         self.cpu.reset(&self.config.mode);
         self.sram_output.reset();
+        // self.bus.cartridge_mut().load_ram();
     }
 
     pub fn run_frame<M: Monitor>(&mut self, mut dbg: Option<&mut M>) -> Option<M::Stop> {

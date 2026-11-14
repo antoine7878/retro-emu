@@ -1,4 +1,3 @@
-#![allow(unused)]
 use crate::gameboy::config::ConsoleType;
 use crate::gameboy::memory::io_reg::IOReg;
 use crate::gameboy::memory::map;
@@ -82,10 +81,6 @@ impl Joypad {
         if button.is_action() { &mut self.buttons } else { &mut self.dpad }
     }
 
-    pub fn press(&mut self, button: Button) {
-        let before = self.read();
-        *self.group(button) &= !button.line();
-    }
-
+    pub fn press(&mut self, button: Button) { *self.group(button) &= !button.line(); }
     pub fn release(&mut self, button: Button) { *self.group(button) |= button.line(); }
 }
