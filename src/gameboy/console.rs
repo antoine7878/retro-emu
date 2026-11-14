@@ -95,4 +95,5 @@ impl GameBoy {
     pub fn bus(&self) -> &Bus { &self.bus }
     pub fn press(&mut self, button: Button) { self.bus.press(button); }
     pub fn release(&mut self, button: Button) { self.bus.joypad_mut().release(button); }
+    pub fn take_rumble(&mut self) -> f32 { self.bus.cartridge_mut().take_rumble() }
 }

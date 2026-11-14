@@ -17,7 +17,8 @@ pub trait MBC: Sized {
     fn rom(&self) -> Vec<u8>;
     fn ram(&self) -> &[u8];
     fn load_ram(&mut self, ram: Vec<u8>);
-    fn load_rtc(&mut self, clock: [u8; 5]);
+    fn load_rtc(&mut self, clock: [u8; 5]) {}
+    fn take_rumble(&mut self) -> f32 { 0. }
 }
 
 pub enum Mbcs {
@@ -88,11 +89,15 @@ impl MBC for Mbcs {
     }
 
     fn load_rtc(&mut self, clock: [u8; 5]) {
+        // if let Mbcs::Mbc3(m) = self {
+        //     m.load_rtc(clock);
+        // }
+    }
+
+    fn take_rumble(&mut self) -> f32 {
         match self {
-            Mbcs::RomOnly(m) => m.load_rtc(clock),
-            Mbcs::Mbc1(m) => m.load_rtc(clock),
-            Mbcs::Mbc2(m) => m.load_rtc(clock),
-            Mbcs::Mbc5(m) => m.load_rtc(clock),
+            Mbcs::Mbc5(m) => m.take_rumble(),
+            _ => 0.,
         }
     }
 }

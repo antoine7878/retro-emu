@@ -37,7 +37,8 @@ impl Frontend {
         while self.handle_input(game_boy, &mut pacer) {
             pacer.begin_frame(game_boy);
             self.process_commands(game_boy);
-            catch_unwind(AssertUnwindSafe(|| self.step(game_boy))).map_err(|_| crash(game_boy))?;
+            catch_unwind(AssertUnwindSafe(|| self.step(game_boy))).map_err(|_| Self::crash(game_boy))?;
+            self.input.rumble(game_boy.take_rumble());
             self.video.draw(game_boy)?;
             self.video.update_fps(game_boy, pacer.turbo);
             pacer.throttle(game_boy);
@@ -83,9 +84,9 @@ impl Frontend {
             }
         }
     }
-}
 
-fn crash(game_boy: &mut GameBoy) -> String {
-    game_boy.bus().cartridge().save_ram();
-    format!("emulator panicked at PC={:04X}, cycle={}", game_boy.pc(), game_boy.cycle_count())
+    fn crash(game_boy: &mut GameBoy) -> String {
+        game_boy.bus().cartridge().save_ram();
+        format!("emulator panicked at PC={:04X}, cycle={}", game_boy.pc(), game_boy.cycle_count())
+    }
 }

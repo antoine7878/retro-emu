@@ -10,3 +10,4 @@ test-roms/
 todo*
 rscs/tetris.gb
 *.o
+*.sym

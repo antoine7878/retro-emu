@@ -56,7 +56,8 @@ impl Cartridge {
     }
 
     pub fn read(&self, addr: u16) -> u8 { self.mbc.read(addr) }
-    pub fn write(&mut self, addr: u16, value: u8) { self.mbc.write(addr, value) }
+    pub fn write(&mut self, addr: u16, value: u8) { self.mbc.write(addr, value); }
     pub fn header(&self) -> &CartridgeHeader { &self.header }
     pub fn rom(&self) -> Vec<u8> { self.mbc.rom() }
+    pub fn take_rumble(&mut self) -> f32 { self.mbc.take_rumble() }
 }

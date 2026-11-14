@@ -32,7 +32,9 @@ impl MBC for Mbc1 {
     fn read(&self, addr: u16) -> u8 {
         match addr {
             map::ROM_START..map::ROM_END => self.rom[self.rom_offset(addr)],
-            map::SRAM_START..map::SRAM_END if self.ram_enabled && !self.ram.is_empty() => self.ram[self.ram_offset(addr)],
+            map::SRAM_START..map::SRAM_END if self.ram_enabled && !self.ram.is_empty() => {
+                self.ram[self.ram_offset(addr)]
+            }
             _ => 0xFF,
         }
     }
@@ -59,8 +61,6 @@ impl MBC for Mbc1 {
         ram.resize(self.ram_size, 0xFF);
         self.ram = ram;
     }
-
-    fn load_rtc(&mut self, _: [u8; 5]) { unreachable!() }
 }
 
 impl Mbc1 {
