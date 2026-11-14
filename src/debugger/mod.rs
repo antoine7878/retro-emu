@@ -32,7 +32,6 @@ impl fmt::Display for Watchpoint {
         }
         write!(f, " on {}", self.on)?;
         Ok(())
-        // if let Some(value) = self.value { writeln!(f, "to {value}") } else { writeln!(f, "change") }
     }
 }
 

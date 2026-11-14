@@ -201,7 +201,7 @@ impl Frontend {
                 }
                 Event::ControllerDeviceAdded { which, .. } => {
                     let Ok(controller) = self.controller_subsystem.open(which) else { continue };
-                    self.controller = Some(controller)
+                    self.controller = Some(controller);
                 }
                 Event::ControllerAxisMotion { axis, value, .. } => {
                     let (held, neg, pos) = match axis {
