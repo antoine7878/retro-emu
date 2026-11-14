@@ -5,12 +5,13 @@ use std::sync::mpsc::{Receiver, Sender};
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
+use sdl2::controller::{Axis, Button as SdlButton, GameController};
 use sdl2::event::Event;
 use sdl2::keyboard::Scancode;
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::render::{Canvas, Texture};
 use sdl2::video::Window;
-use sdl2::{EventPump, Sdl};
+use sdl2::{EventPump, GameControllerSubsystem, Sdl};
 
 use crate::cli::Args;
 use crate::debugger::prompt::{self, Prompt};
@@ -67,6 +68,10 @@ pub struct Frontend {
     fps: FpsCounter,
     dirty: bool,
     last_present: Instant,
+    controller_subsystem: GameControllerSubsystem,
+    controller: Option<GameController>,
+    stick_x: Option<Button>,
+    stick_y: Option<Button>,
 }
 
 pub const SCALE: u32 = 2;
@@ -84,6 +89,7 @@ impl Frontend {
         let terminal = std::env::var("__CFBundleIdentifier").ok();
         let prompt_pending = false;
         let fps = FpsCounter::default();
+        let controller_subsystem = sdl.game_controller()?;
         Ok(Self {
             event_pump,
             canvas,
@@ -96,6 +102,10 @@ impl Frontend {
             last_cmd,
             terminal,
             fps,
+            controller_subsystem,
+            controller: None,
+            stick_x: None,
+            stick_y: None,
             dirty: false,
             last_present: Instant::now(),
         })
@@ -180,6 +190,28 @@ impl Frontend {
                         game_boy.release(button);
                     }
                 }
+                Event::ControllerDeviceAdded { which, .. } => {
+                    let Ok(controller) = self.controller_subsystem.open(which) else { continue };
+                    self.controller = Some(controller)
+                }
+                Event::ControllerAxisMotion { axis, value, .. } => {
+                    let (held, neg, pos) = match axis {
+                        Axis::LeftX => (&mut self.stick_x, Button::Left, Button::Right),
+                        Axis::LeftY => (&mut self.stick_y, Button::Up, Button::Down),
+                        _ => continue,
+                    };
+                    Self::update_stick(game_boy, held, value, neg, pos);
+                }
+                Event::ControllerButtonDown { button, .. } => {
+                    if let Some(button) = Self::controller_button_for(button) {
+                        game_boy.press(button);
+                    }
+                }
+                Event::ControllerButtonUp { button, .. } => {
+                    if let Some(button) = Self::controller_button_for(button) {
+                        game_boy.release(button);
+                    }
+                }
                 _ => {}
             }
         }
@@ -189,18 +221,55 @@ impl Frontend {
         Input::Continue
     }
 
+    const DEAD_ZONE: i16 = 8000;
+    const M_DEAD_ZONE: i16 = -Self::DEAD_ZONE;
+
+    fn update_stick(game_boy: &mut GameBoy, held: &mut Option<Button>, value: i16, neg: Button, pos: Button) {
+        let new = match value {
+            Self::DEAD_ZONE.. => Some(pos),
+            ..Self::M_DEAD_ZONE => Some(neg),
+            _ => None,
+        };
+        if new == *held {
+            return;
+        }
+        if let Some(old) = held.take() {
+            game_boy.release(old);
+        }
+        if let Some(button) = new {
+            game_boy.press(button);
+        }
+        *held = new;
+    }
+
+    fn controller_button_for(sdl_button: SdlButton) -> Option<Button> {
+        let button = match sdl_button {
+            SdlButton::DPadUp => Button::Up,
+            SdlButton::DPadDown => Button::Down,
+            SdlButton::DPadLeft => Button::Left,
+            SdlButton::DPadRight => Button::Right,
+            SdlButton::A => Button::B,
+            SdlButton::B => Button::A,
+            SdlButton::Start => Button::Start,
+            SdlButton::Back => Button::Select,
+            _ => return None,
+        };
+        Some(button)
+    }
+
     fn button_for(scancode: Scancode) -> Option<Button> {
-        Some(match scancode {
+        let button = match scancode {
             Scancode::E => Button::Up,
             Scancode::D => Button::Down,
             Scancode::S => Button::Left,
             Scancode::F => Button::Right,
             Scancode::J => Button::B,
             Scancode::K => Button::A,
-            Scancode::U => Button::Start,
-            Scancode::I => Button::Select,
+            Scancode::U => Button::Select,
+            Scancode::I => Button::Start,
             _ => return None,
-        })
+        };
+        Some(button)
     }
 
     fn process_commands(&mut self, game_boy: &mut GameBoy) {

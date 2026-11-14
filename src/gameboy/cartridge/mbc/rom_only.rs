@@ -41,7 +41,13 @@ impl MBC for RomOnly {
         }
     }
 
-    fn load_ram(&mut self, ram: Vec<u8>) { self.ram.as_mut().map(|r| r.copy_from_slice(ram.as_slice())); }
+    fn load_ram(&mut self, ram: Vec<u8>) {
+        self.ram.as_mut().map(|r| {
+            let mut ram = ram;
+            ram.resize(r.len(), 0);
+            r.copy_from_slice(ram.as_slice());
+        });
+    }
 
     fn load_rtc(&mut self, _: [u8; 5]) { unreachable!() }
 }
