@@ -20,11 +20,11 @@ pub struct Mbc1 {
 impl MBC for Mbc1 {
     fn try_from_header(rom: Vec<u8>, header: &CartridgeHeader) -> Option<Self> {
         let rom_bank_count = header.rom_bank_count as usize;
-        let rom_size = rom_bank_count * map::CART_ROM_BANK_SIZE;
+        let rom_size = rom_bank_count * map::ROM_BANK_SIZE;
         let mut rom = rom;
         rom.resize(rom_size, 0xFF);
         let ram_bank_count = header.ram_bank_count as usize;
-        let ram_size = ram_bank_count * map::CART_RAM_BANK_SIZE;
+        let ram_size = ram_bank_count * map::SRAM_BANK_SIZE;
         let ram = vec![0; ram_size];
         Some(Self { rom, ram, rom_bank_count, ram_bank_count, ram_size, ..Default::default() })
     }
@@ -32,7 +32,7 @@ impl MBC for Mbc1 {
     fn read(&self, addr: u16) -> u8 {
         match addr {
             map::ROM_START..map::ROM_END => self.rom[self.rom_offset(addr)],
-            map::SRAM_START..map::SRAM_END if self.ram_enabled => self.ram[self.ram_offset(addr)],
+            map::SRAM_START..map::SRAM_END if self.ram_enabled && !self.ram.is_empty() => self.ram[self.ram_offset(addr)],
             _ => 0xFF,
         }
     }
@@ -43,7 +43,7 @@ impl MBC for Mbc1 {
             0x2000..0x4000 => self.bank1.write(value),
             0x4000..0x6000 => self.bank2.write(value),
             0x6000..0x8000 => self.banking_mode = value & 1,
-            map::SRAM_START..map::SRAM_END if self.ram_enabled => {
+            map::SRAM_START..map::SRAM_END if self.ram_enabled && !self.ram.is_empty() => {
                 let offset = self.ram_offset(addr);
                 self.ram[offset] = value
             }
@@ -53,17 +53,23 @@ impl MBC for Mbc1 {
 
     fn rom(&self) -> Vec<u8> { self.rom.clone() }
     fn ram(&self) -> &[u8] { self.ram.as_slice() }
-    fn load_ram(&mut self, ram: Vec<u8>) { self.ram = ram; }
+
+    fn load_ram(&mut self, ram: Vec<u8>) {
+        let mut ram = ram;
+        ram.resize(self.ram_size, 0xFF);
+        self.ram = ram;
+    }
+
     fn load_rtc(&mut self, _: [u8; 5]) { unreachable!() }
 }
 
 impl Mbc1 {
     fn rom_offset(&self, addr: u16) -> usize {
-        self.selected_rom_bank(addr) * map::CART_ROM_BANK_SIZE + (addr & 0x3FFF) as usize
+        self.selected_rom_bank(addr) * map::ROM_BANK_SIZE + (addr & 0x3FFF) as usize
     }
 
     fn ram_offset(&self, addr: u16) -> usize {
-        self.selected_ram_bank() * map::CART_RAM_BANK_SIZE + (addr - map::SRAM_START) as usize
+        self.selected_ram_bank() * map::SRAM_BANK_SIZE + (addr - map::SRAM_START) as usize
     }
 
     fn selected_rom_bank(&self, addr: u16) -> usize {
@@ -76,7 +82,7 @@ impl Mbc1 {
             (0 | 1, map::ROM_HALF..map::ROM_END) => (b2 << 5) | b1,
             _ => unreachable!(),
         };
-        bank as usize & (self.rom_bank_count - 1)
+        bank as usize & self.rom_bank_count.saturating_sub(1)
     }
 
     fn selected_ram_bank(&self) -> usize {
