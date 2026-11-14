@@ -52,7 +52,7 @@ ROMS = [
 
 def run(rom: Path) -> str:
     proc = subprocess.Popen(
-        [BIN, rom, "-t", "0", "-s"],
+        [BIN, rom, "-s"],
         stdout=subprocess.PIPE,
         stderr=subprocess.DEVNULL,
     )

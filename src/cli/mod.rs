@@ -5,7 +5,6 @@ use std::process::exit;
 use std::str::Chars;
 use std::vec;
 
-use crate::frontend::FRAME_RATE;
 use parser::{ArgError, ArgParser, argv};
 
 #[derive(Debug)]
@@ -13,7 +12,6 @@ pub struct Args {
     pub infiles: Vec<String>,
     pub debug: bool,
     pub debug_init_file: Option<String>,
-    pub max_fps: u32,
     pub serial_print: bool,
     argv: vec::IntoIter<String>,
 }
@@ -30,10 +28,6 @@ impl ArgParser for Args {
             'g' => self.debug = true,
             's' => self.serial_print = true,
             'f' => self.debug_init_file = self.value(it, 'f')?,
-            't' => {
-                let s: String = self.value(it, 't')?;
-                self.max_fps = s.parse().map_err(|_| ArgError::WrongValue('t', s))?;
-            }
             'h' => Self::help(),
             c => return Err(ArgError::UnknownOption(c)),
         }
@@ -48,7 +42,6 @@ impl Default for Args {
             debug: false,
             argv: argv(),
             debug_init_file: None,
-            max_fps: FRAME_RATE,
             serial_print: false,
         }
     }
@@ -78,7 +71,7 @@ impl Args {
     }
 
     pub fn help() {
-        eprintln!("usage: retro_emu rom.gb [-f debuf_file] [-t max_fps (0: unlimited)] [-gsh]");
+        eprintln!("usage: retro_emu rom.gb [-f debuf_file] [-gsh]");
         exit(0);
     }
 }

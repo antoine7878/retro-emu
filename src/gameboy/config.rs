@@ -1,6 +1,7 @@
 use std::error::Error;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+use crate::frontend::FRAME_RATE;
 use crate::gameboy::memory::map;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -20,10 +21,10 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new(max_fps: u32, serial_print: bool) -> Result<Self, Box<dyn Error>> {
+    pub fn new(serial_print: bool) -> Result<Self, Box<dyn Error>> {
         let _rng_seed = SystemTime::now().duration_since(UNIX_EPOCH)?.subsec_nanos();
         let mode = ConsoleType::Dmg;
-        let frame_time = (max_fps > 0).then(|| Duration::from_secs(1) / max_fps);
+        let frame_time = (!serial_print).then(|| Duration::from_secs(1) / FRAME_RATE);
         Ok(Self { _rng_seed, mode, frame_time, serial_print })
     }
 }
