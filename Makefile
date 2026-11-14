@@ -2,7 +2,7 @@
 ROM=./rscs/gameboy_button_test/rom/buttontest.gb
 
 test:
-	cargo run --release -- $(ROM) 
+	cargo run -- $(ROM)
 
 ctest:
 	./rscs/tester.py

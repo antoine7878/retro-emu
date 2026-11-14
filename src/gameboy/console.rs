@@ -93,6 +93,6 @@ impl GameBoy {
 
     pub fn set_trace(&mut self, on: bool) { self.bus.set_trace(on); }
     pub fn bus(&self) -> &Bus { &self.bus }
-    pub fn press(&mut self, button: Button) { self.bus.joypad_mut().press(button); }
+    pub fn press(&mut self, button: Button) { self.bus.press(button); }
     pub fn release(&mut self, button: Button) { self.bus.joypad_mut().release(button); }
 }

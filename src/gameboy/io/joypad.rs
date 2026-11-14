@@ -81,6 +81,10 @@ impl Joypad {
         if button.is_action() { &mut self.buttons } else { &mut self.dpad }
     }
 
-    pub fn press(&mut self, button: Button) { *self.group(button) &= !button.line(); }
+    pub fn press(&mut self, button: Button) -> bool {
+        let before = self.read();
+        *self.group(button) &= !button.line();
+        before & !self.read() & LINE_MASK != 0
+    }
     pub fn release(&mut self, button: Button) { *self.group(button) |= button.line(); }
 }

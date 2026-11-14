@@ -2,7 +2,7 @@ use crate::gameboy::cartridge::Cartridge;
 use crate::gameboy::config::ConsoleType;
 use crate::gameboy::io::dma::DMA;
 use crate::gameboy::io::interrupt::Interrupter;
-use crate::gameboy::io::joypad::Joypad;
+use crate::gameboy::io::joypad::{Button, Joypad};
 use crate::gameboy::io::link::Link;
 use crate::gameboy::io::ppu::Ppu;
 use crate::gameboy::io::timer::Timer;
@@ -192,4 +192,10 @@ impl Bus {
     pub fn cartridge_mut(&mut self) -> &mut Cartridge { &mut self.cartridge }
     pub fn joypad(&self) -> &Joypad { &self.joypad }
     pub fn joypad_mut(&mut self) -> &mut Joypad { &mut self.joypad }
+
+    pub fn press(&mut self, button: Button) {
+        if self.joypad.press(button) {
+            self.interrupter.ifl_mut().set(4);
+        }
+    }
 }
