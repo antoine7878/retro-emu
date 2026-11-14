@@ -56,6 +56,7 @@ pub struct Ppu {
 
     stat_line: bool,
     mode: PpuMode,
+    dmg: bool,
 
     window_line: u16,
     wy_triggered: bool,
@@ -110,6 +111,7 @@ impl Default for Ppu {
             wx: IORegister::default(),
             vbk: IORegister::default(),
             mode: PpuMode::HBlank,
+            dmg: true,
         }
     }
 }
@@ -117,6 +119,7 @@ impl Default for Ppu {
 impl Ppu {
     pub fn reset(&mut self, mode: &ConsoleType) {
         *self = Self::default();
+        self.dmg = matches!(mode, ConsoleType::Dmg);
         self.lcdc.reset(mode);
         self.stat.reset(mode);
         self.scy.reset(mode);
@@ -193,6 +196,23 @@ impl Ppu {
             map::VBK => self.vbk.write(value),
             _ => unreachable!("Address not in PPU"),
         }
+    }
+
+    pub fn write_stat(&mut self, value: u8, ifl: &mut InterruptFlag) {
+        if self.lcdc.is_clear(PPU_OFF) {
+            self.stat.write(value);
+            return;
+        }
+        if self.dmg {
+            let lyc_match = self.ly.read_raw() == self.lyc.read_raw();
+            let line = matches!(self.mode, PpuMode::HBlank | PpuMode::VBlank) || lyc_match;
+            if line && !self.stat_line {
+                ifl.set(1);
+            }
+            self.stat_line = line;
+        }
+        self.stat.write(value);
+        self.update_stat_line(ifl);
     }
 
     fn write_lcdc(&mut self, value: u8) {
