@@ -24,7 +24,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     sdl2::hint::set("SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS", "1");
     let sdl = sdl2::init()?;
 
-    let config = Config::new(args.max_fps, args.serial_print)?;
+    let config = Config::new(args.serial_print)?;
     let mut game_boy = GameBoy::new(config);
 
     let rom = match args.infiles.get(0) {

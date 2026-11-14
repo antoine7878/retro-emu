@@ -1,5 +1,5 @@
 # ROM=rscs/tetris.gb
-ROM=./rscs/gameboy_button_test/rom/buttontest.gb
+ROM=./rscs/zelda.gb
 
 test:
 	cargo run -- $(ROM)

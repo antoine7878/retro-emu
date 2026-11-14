@@ -72,11 +72,15 @@ pub struct Frontend {
     controller: Option<GameController>,
     stick_x: Option<Button>,
     stick_y: Option<Button>,
+    turbo: bool,
+    normal_frame_time: Option<Duration>,
+    next_frame: Instant,
 }
 
-pub const SCALE: u32 = 2;
+pub const SCALE: u32 = 4;
 pub const FRAME_RATE: u32 = 60;
 const PRESENT_INTERVAL: Duration = Duration::from_nanos(1_000_000_000 / FRAME_RATE as u64);
+const TURBO_FACTOR: u32 = 2;
 
 impl Frontend {
     pub fn new(args: Args, sdl: Sdl) -> Result<Self, Box<dyn Error>> {
@@ -108,6 +112,9 @@ impl Frontend {
             stick_y: None,
             dirty: false,
             last_present: Instant::now(),
+            turbo: false,
+            normal_frame_time: None,
+            next_frame: Instant::now(),
         })
     }
 
@@ -125,7 +132,7 @@ impl Frontend {
             .position_centered()
             .always_on_top()
             .build()?;
-        let mut canvas = window.into_canvas().build()?;
+        let mut canvas = window.into_canvas().present_vsync().build()?;
         canvas.set_logical_size(WIDTH as u32, HEIGHT as u32)?;
         canvas.set_integer_scale(true)?;
         let texture_creator = canvas.texture_creator();
@@ -153,9 +160,10 @@ impl Frontend {
         if self.dbg.is_some() {
             game_boy.set_trace(true);
         }
-        let mut next_frame = Instant::now();
+        self.normal_frame_time = game_boy.config.frame_time;
+        self.next_frame = Instant::now();
         loop {
-            next_frame += game_boy.config.frame_time.unwrap_or_default();
+            self.next_frame += game_boy.config.frame_time.unwrap_or_default();
             if self.poll_events(game_boy) == Input::Quit {
                 break;
             }
@@ -163,7 +171,7 @@ impl Frontend {
             catch_unwind(AssertUnwindSafe(|| self.step(game_boy))).map_err(|_| self.crash(game_boy))?;
             self.draw(game_boy)?;
             self.update_fps(game_boy);
-            Self::throttle(&mut next_frame, game_boy.config.frame_time);
+            Self::throttle(&mut self.next_frame, game_boy.config.frame_time);
         }
         prompt::restore_terminal();
         Ok(())
@@ -176,6 +184,7 @@ impl Frontend {
 
     fn poll_events(&mut self, game_boy: &mut GameBoy) -> Input {
         let mut pause_requested = false;
+        let mut turbo_toggled = false;
         for event in self.event_pump.poll_iter() {
             match event {
                 Event::Quit { .. } | Event::KeyDown { scancode: Some(Scancode::Escape), .. } => return Input::Quit,
@@ -202,6 +211,9 @@ impl Frontend {
                     };
                     Self::update_stick(game_boy, held, value, neg, pos);
                 }
+                Event::ControllerButtonDown { button: SdlButton::LeftShoulder | SdlButton::RightShoulder, .. } => {
+                    turbo_toggled = !turbo_toggled
+                }
                 Event::ControllerButtonDown { button, .. } => {
                     if let Some(button) = Self::controller_button_for(button) {
                         game_boy.press(button);
@@ -215,10 +227,20 @@ impl Frontend {
                 _ => {}
             }
         }
+        if turbo_toggled {
+            self.toggle_turbo(game_boy);
+        }
         if pause_requested && self.dbg.is_some() && !matches!(self.mode, Mode::Paused) {
             self.stop(StopReason::Pause, game_boy);
         }
         Input::Continue
+    }
+
+    fn toggle_turbo(&mut self, game_boy: &mut GameBoy) {
+        self.turbo = !self.turbo;
+        game_boy.config.frame_time = self.normal_frame_time.map(|t| if self.turbo { t / TURBO_FACTOR } else { t });
+        self.next_frame = Instant::now();
+        self.set_title(game_boy, None);
     }
 
     const DEAD_ZONE: i16 = 8000;
@@ -312,9 +334,10 @@ impl Frontend {
 
     fn set_title(&mut self, game_boy: &GameBoy, fps: Option<(f64, f64)>) {
         let rom = game_boy.bus().cartridge().header().rom_name.as_str().trim().to_lowercase();
+        let speed = if self.turbo { format!(" x{TURBO_FACTOR}") } else { String::new() };
         let title = match fps {
-            Some((emu, lcd)) => format!("{rom} - {emu:.0} fps ({lcd:.1})"),
-            None => rom,
+            Some((emu, lcd)) => format!("{rom} - {emu:.0} fps ({lcd:.1}){speed}"),
+            None => format!("{rom}{speed}"),
         };
         let _ = self.canvas.window_mut().set_title(&title);
     }
@@ -370,6 +393,7 @@ impl Frontend {
             }
         }
     }
+
     fn focus_terminal(&self) {
         if let Some(id) = &self.terminal {
             let _ = Command::new("open").args(["-b", id]).status();
