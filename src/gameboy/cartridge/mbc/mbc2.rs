@@ -36,7 +36,9 @@ impl MBC for Mbc2 {
     fn write(&mut self, addr: u16, value: u8) {
         match addr {
             0x0000..0x4000 if addr & 0x0100 == 0 => self.ram_enabled = value & 0x0F == 0x0A,
-            0x0000..0x4000 => self.selected_rom_bank = usize::max(value as usize & 0x0F, 1) & (self.rom_bank_count - 1),
+            0x0000..0x4000 => {
+                self.selected_rom_bank = usize::max(value as usize & 0x0F, 1) & (self.rom_bank_count.saturating_sub(1))
+            }
             map::SRAM_START..map::SRAM_END if self.ram_enabled => self.ram[(addr & 0x01FF) as usize] = value,
             _ => (),
         }

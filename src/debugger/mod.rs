@@ -50,14 +50,12 @@ pub enum StopReason {
     Breakpoint(u16),
     Watchpoint(MemAccess),
     Step,
-    Pause,
 }
 
 impl fmt::Display for StopReason {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             StopReason::Step => write!(f, "{YELLOW}Step{RESET}"),
-            StopReason::Pause => write!(f, "{YELLOW}Paused{RESET}"),
             StopReason::Breakpoint(addr) => {
                 write!(f, "{YELLOW}Breakpoint{RESET} at {CYAN}${addr:04X}{RESET}",)
             }
