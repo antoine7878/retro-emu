@@ -1,5 +1,5 @@
 use std::error::Error;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::Duration;
 
 use crate::frontend::FRAME_RATE;
 use crate::gameboy::memory::map;
@@ -14,7 +14,6 @@ pub enum CGMode {
 
 #[derive(Debug, Clone)]
 pub struct Config {
-    pub _rng_seed: u32,
     pub mode: ConsoleType,
     pub frame_time: Option<Duration>,
     pub serial_print: bool,
@@ -22,10 +21,9 @@ pub struct Config {
 
 impl Config {
     pub fn new(serial_print: bool) -> Result<Self, Box<dyn Error>> {
-        let _rng_seed = SystemTime::now().duration_since(UNIX_EPOCH)?.subsec_nanos();
         let mode = ConsoleType::Dmg;
         let frame_time = (!serial_print).then(|| Duration::from_secs(1) / FRAME_RATE);
-        Ok(Self { _rng_seed, mode, frame_time, serial_print })
+        Ok(Self { mode, frame_time, serial_print })
     }
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

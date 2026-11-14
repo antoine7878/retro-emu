@@ -1,4 +1,4 @@
-use std::ops::{AddAssign, BitOr};
+use std::ops::AddAssign;
 
 use crate::gameboy::config::ConsoleType;
 
@@ -19,15 +19,6 @@ impl<const ADDR: u16, const WRITE: u8, const READ: u8> IORegister<ADDR, WRITE, R
 
 impl<const ADDR: u16, const WRITE: u8, const READ: u8> AddAssign<u8> for IORegister<ADDR, WRITE, READ> {
     fn add_assign(&mut self, rhs: u8) { self.raw = self.raw.wrapping_add(rhs); }
-}
-
-impl<const ADDR: u16, const WRITE: u8, const READ: u8> BitOr<u8> for &IORegister<ADDR, WRITE, READ> {
-    type Output = u8;
-    fn bitor(self, rhs: u8) -> Self::Output { self.read() | rhs }
-}
-
-impl<const ADDR: u16, const WRITE: u8, const READ: u8> PartialEq for IORegister<ADDR, WRITE, READ> {
-    fn eq(&self, other: &Self) -> bool { self.raw == other.raw }
 }
 
 impl<const ADDR: u16, const WRITE: u8, const READ: u8> IOReg for IORegister<ADDR, WRITE, READ> {

@@ -1,4 +1,3 @@
-# ROM=rscs/tetris.gb
 ROM=./rscs/zelda.gb
 
 test:

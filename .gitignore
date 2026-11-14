@@ -9,3 +9,4 @@ gb-test-roms/
 test-roms/
 todo*
 rscs/tetris.gb
+*.o

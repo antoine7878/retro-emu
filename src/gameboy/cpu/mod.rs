@@ -583,7 +583,6 @@ const ADD_HL: FlagSpec = FlagSpec::znhc("-0RR");
 
 const ADD_SP: FlagSpec = FlagSpec::znhc("00RR");
 const RLCA: FlagSpec = FlagSpec::znhc("000R");
-// const CB_RLC: FlagSpec = FlagSpec::znhc("R00R");
 const NOF: FlagSpec = FlagSpec::znhc("----");
 const SHIFT: FlagSpec = FlagSpec::znhc("R00R");
 const BIT: FlagSpec = FlagSpec::znhc("R01-");
