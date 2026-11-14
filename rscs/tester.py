@@ -42,7 +42,8 @@ ROMS = [
     "test-roms/mooneye/mbc1/rom_512kb.gb",
     "test-roms/mooneye/mbc1/ram_64kb.gb",
     "test-roms/mooneye/mbc2/ram.gb",
-    # "test-roms/mooneye/mbc5/rom_2Mb.gb",
+    "test-roms/mooneye/mbc2/ram.gb",
+    "test-roms/mooneye/mbc5/rom_2Mb.gb",
     "test-roms/mooneye/acceptance/div_timing.gb",
     "test-roms/mooneye/acceptance/intr_timing.gb",
     "test-roms/mooneye/acceptance/oam_dma/basic.gb",
@@ -88,8 +89,13 @@ def run(rom: Path) -> str:
 COLORS = {"OK": "\033[32m", "KO": "\033[31m"}
 
 
+def remove_saves():
+    Path("save_mooneye-gb test").unlink(missing_ok=True)
+
+
 def main():
     subprocess.run(["cargo", "build", "--release"], cwd=ROOT, check=True)
+    remove_saves()
 
     roms = [TESTS / r for r in ROMS]
     with ThreadPoolExecutor(JOBS) as ex:
