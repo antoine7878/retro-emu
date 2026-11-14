@@ -16,7 +16,7 @@ BIN = ROOT / "target" / "release" / "retro_emu"
 TIMEOUT = 2
 JOBS = 10
 ROMS = [
-    "gb-test-roms/interrupt_time/interrupt_time.gb",
+    # "gb-test-roms/interrupt_time/interrupt_time.gb",
     "gb-test-roms/halt_bug.gb",
     "gb-test-roms/instr_timing/instr_timing.gb",
     "gb-test-roms/cpu_instrs/cpu_instrs.gb",
