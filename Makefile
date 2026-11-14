@@ -1,4 +1,4 @@
-ROM=./rscs/zelda.gb
+ROM=./rscs/games/pokemon_silver.gbc
 
 test:
 	cargo run -- $(ROM)

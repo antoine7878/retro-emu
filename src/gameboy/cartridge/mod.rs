@@ -29,20 +29,21 @@ impl Cartridge {
     }
 
     pub fn load_ram(&mut self) {
-        let Ok(mut file) = File::open(&self.file_name) else { return };
-        if self.header.has_battery() {
-            let mut ram = Vec::new();
-            let Ok(_) = file.read_to_end(&mut ram) else { return };
-            self.mbc.load_ram(ram);
+        if !self.header.has_battery() {
+            return;
         }
+        let mut ram = Vec::new();
+        let Ok(_) = File::open(&self.file_name).and_then(|mut f| f.read_to_end(&mut ram)) else { return };
+        self.mbc.load_ram(ram);
     }
 
     pub fn save_ram(&self) {
-        if self.header.has_battery() {
-            let ram = self.mbc.ram();
-            let Ok(mut file) = File::create(&self.file_name) else { return };
-            let Ok(()) = file.write_all(&ram) else { return };
+        if !self.header.has_battery() {
+            return;
         }
+        let ram = self.mbc.ram();
+        let Ok(mut file) = File::create(&self.file_name) else { return };
+        let Ok(()) = file.write_all(&ram) else { return };
     }
 
     pub fn read(&self, addr: u16) -> u8 { self.mbc.read(addr) }
