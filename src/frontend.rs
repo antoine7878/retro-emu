@@ -150,15 +150,18 @@ impl Frontend {
                 break;
             }
             self.process_commands(game_boy);
-            if catch_unwind(AssertUnwindSafe(|| self.step(game_boy))).is_err() {
-                self.recover(game_boy);
-            }
+            catch_unwind(AssertUnwindSafe(|| self.step(game_boy))).map_err(|_| self.crash(game_boy))?;
             self.draw(game_boy)?;
             self.update_fps(game_boy);
             Self::throttle(&mut next_frame, game_boy.config.frame_time);
         }
         prompt::restore_terminal();
         Ok(())
+    }
+
+    fn crash(&self, game_boy: &mut GameBoy) -> String {
+        game_boy.bus().cartridge().save_ram();
+        format!("emulator panicked at PC={:04X}, cycle={}", game_boy.pc(), game_boy.cycle_count())
     }
 
     fn poll_events(&mut self, game_boy: &mut GameBoy) -> Input {
@@ -210,12 +213,6 @@ impl Frontend {
             let cmd = if cmd.is_empty() { self.last_cmd.clone() } else { cmd };
             self.handle_command(&cmd, game_boy);
         }
-    }
-
-    fn recover(&mut self, game_boy: &mut GameBoy) {
-        eprintln!("emulator panicked at PC={:04X}, cycle={}", game_boy.pc(), game_boy.cycle_count());
-        game_boy.load(include_bytes!("../rscs/error_roms/bad_game.gb").to_vec());
-        self.set_title(game_boy, None);
     }
 
     fn step(&mut self, game_boy: &mut GameBoy) {

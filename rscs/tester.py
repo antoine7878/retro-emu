@@ -41,7 +41,7 @@ ROMS = [
     "gb-test-roms/mem_timing-2/rom_singles/03-modify_timing.gb",
     "test-roms/mooneye/mbc1/rom_512kb.gb",
     "test-roms/mooneye/mbc1/ram_64kb.gb",
-    # "test-roms/mooneye/mbc2/ram.gb",
+    "test-roms/mooneye/mbc2/ram.gb",
     # "test-roms/mooneye/mbc5/rom_2Mb.gb",
     "test-roms/mooneye/acceptance/div_timing.gb",
     "test-roms/mooneye/acceptance/intr_timing.gb",
