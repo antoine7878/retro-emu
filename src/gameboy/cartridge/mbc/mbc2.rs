@@ -49,5 +49,4 @@ impl MBC for Mbc2 {
         ram.resize(RAM_SIZE, 0);
         self.ram.copy_from_slice(&ram);
     }
-    fn load_rtc(&mut self, _: [u8; 5]) { unreachable!() }
 }

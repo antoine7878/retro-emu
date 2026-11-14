@@ -51,6 +51,16 @@ CopyTilemap:
 	ld [rBGP], a
 
 Done:
+	ld a, JOYP_GET_BUTTONS
+	ldh [rJOYP], a
+	ldh a, [rJOYP]
+	ldh a, [rJOYP]
+	cpl
+	and a, 1
+	add a, a
+	add a, a
+	add a, a
+	ld [$4000], a
 	jr Done
 
 

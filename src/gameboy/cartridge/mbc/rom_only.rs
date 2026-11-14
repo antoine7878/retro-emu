@@ -48,6 +48,4 @@ impl MBC for RomOnly {
             r.copy_from_slice(ram.as_slice());
         });
     }
-
-    fn load_rtc(&mut self, _: [u8; 5]) { unreachable!() }
 }

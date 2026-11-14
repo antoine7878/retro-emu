@@ -31,7 +31,7 @@ pub struct DebugSession {
 impl DebugSession {
     pub fn new(args: &Args) -> Option<Self> {
         let dbg = Debugger::new(args)?;
-        let (commands, prompt_ready) = spawn_prompt_thread();
+        let (commands, prompt_ready) = Self::spawn_prompt_thread();
         Some(Self {
             dbg,
             mode: Mode::Running,
@@ -39,14 +39,14 @@ impl DebugSession {
             prompt_ready,
             prompt_pending: false,
             last_cmd: String::new(),
-            terminal: terminal_id(),
+            terminal: Self::terminal_id(),
         })
     }
 
     fn reset(&mut self) {
         self.mode = Mode::Running;
         self.last_cmd.clear();
-        self.terminal = terminal_id();
+        self.terminal = Self::terminal_id();
     }
 
     pub fn next_command(&mut self, game_boy: &GameBoy) -> Option<Effect> {
@@ -122,21 +122,21 @@ impl DebugSession {
             self.prompt_pending = true;
         }
     }
-}
 
-fn terminal_id() -> Option<String> { std::env::var("__CFBundleIdentifier").ok() }
+    fn terminal_id() -> Option<String> { std::env::var("__CFBundleIdentifier").ok() }
 
-fn spawn_prompt_thread() -> (Receiver<String>, Sender<()>) {
-    let (tx, commands) = mpsc::channel();
-    let (prompt_ready, ready) = mpsc::channel();
-    std::thread::spawn(move || {
-        let mut prompt = Prompt::default();
-        while ready.recv().is_ok() {
-            let Some(line) = prompt.read_line(PROMPT) else { std::process::exit(0) };
-            if tx.send(line).is_err() {
-                break;
+    fn spawn_prompt_thread() -> (Receiver<String>, Sender<()>) {
+        let (tx, commands) = mpsc::channel();
+        let (prompt_ready, ready) = mpsc::channel();
+        std::thread::spawn(move || {
+            let mut prompt = Prompt::default();
+            while ready.recv().is_ok() {
+                let Some(line) = prompt.read_line(PROMPT) else { std::process::exit(0) };
+                if tx.send(line).is_err() {
+                    break;
+                }
             }
-        }
-    });
-    (commands, prompt_ready)
+        });
+        (commands, prompt_ready)
+    }
 }

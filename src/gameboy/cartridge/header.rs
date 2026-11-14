@@ -138,5 +138,6 @@ impl CartridgeHeader {
     }
 
     pub fn has_battery(&self) -> bool { self.addons.contains(&Addon::Battery) }
+    pub fn has_rumble(&self) -> bool { self.addons.contains(&Addon::Rumble) }
     pub fn has_rtc(&self) -> bool { self.addons.contains(&Addon::Rtc) }
 }

@@ -13,6 +13,11 @@ pub struct Mbc5 {
     rom_select_1: usize,
     ram_select: usize,
     ram_enabled: bool,
+
+    rumble: bool,
+    motor: bool,
+    motor_on: u32,
+    motor_writes: u32,
 }
 
 impl MBC for Mbc5 {
@@ -24,7 +29,8 @@ impl MBC for Mbc5 {
         let ram_bank_count = header.ram_bank_count as usize;
         let ram_size = ram_bank_count * map::SRAM_BANK_SIZE;
         let ram = vec![0; ram_size];
-        let m = Self { rom, ram, rom_bank_count, ram_bank_count, rom_select_0: 1, ..Default::default() };
+        let rumble = header.has_rumble();
+        let m = Self { rom, ram, rom_bank_count, ram_bank_count, rumble, rom_select_0: 1, ..Default::default() };
         Some(m)
     }
 
@@ -43,6 +49,12 @@ impl MBC for Mbc5 {
             0x0000..0x2000 => self.ram_enabled = value & 0x0F == 0x0A,
             0x2000..0x3000 => self.rom_select_0 = value as usize,
             0x3000..0x4000 => self.rom_select_1 = value as usize & 0x01,
+            0x4000..0x6000 if self.rumble => {
+                self.ram_select = value as usize & 0x07;
+                self.motor = value & 0x08 != 0;
+                self.motor_writes += 1;
+                self.motor_on += self.motor as u32;
+            }
             0x4000..0x6000 => self.ram_select = value as usize & 0x0F,
             map::SRAM_START..map::SRAM_END if self.ram_enabled && !self.ram.is_empty() => {
                 let offset = self.ram_offset(addr);
@@ -59,7 +71,16 @@ impl MBC for Mbc5 {
         ram.resize(self.ram_bank_count * map::SRAM_BANK_SIZE, 0);
         self.ram.copy_from_slice(&ram);
     }
-    fn load_rtc(&mut self, _: [u8; 5]) { unreachable!() }
+
+    fn take_rumble(&mut self) -> f32 {
+        let level = match self.motor_writes {
+            0 => self.motor as u8 as f32,
+            n => self.motor_on as f32 / n as f32,
+        };
+        self.motor_on = 0;
+        self.motor_writes = 0;
+        level
+    }
 }
 
 impl Mbc5 {
@@ -82,5 +103,5 @@ impl Mbc5 {
         bank as usize & self.rom_bank_count.saturating_sub(1)
     }
 
-    fn selected_ram_bank(&self) -> usize { (self.ram_select & 0x0F) & self.ram_bank_count.saturating_sub(1) }
+    fn selected_ram_bank(&self) -> usize { self.ram_select & self.ram_bank_count.saturating_sub(1) }
 }
