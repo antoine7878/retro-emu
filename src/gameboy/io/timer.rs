@@ -2,6 +2,7 @@ use crate::gameboy::config::ConsoleType;
 use crate::gameboy::io::interrupt::InterruptFlag;
 use crate::gameboy::memory::io_reg::{IOReg, IORegister};
 use crate::gameboy::memory::map;
+use crate::save_state_struct;
 
 #[derive(Default)]
 pub struct Timer {
@@ -10,6 +11,8 @@ pub struct Timer {
     tma: IORegister<{ map::TMA }, 0xFF>,
     tac: IORegister<{ map::TAC }, 0x07>,
 }
+
+save_state_struct!(Timer { counter, tima, tma, tac });
 
 impl Timer {
     const BITS: [u8; 4] = [9, 3, 5, 7];

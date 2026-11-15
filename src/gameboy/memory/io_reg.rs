@@ -1,10 +1,20 @@
 use std::ops::AddAssign;
 
 use crate::gameboy::config::ConsoleType;
+use crate::gameboy::serializer::{SaveState, SerdeError, StateReader, StateWriter};
 
 #[derive(Default)]
 pub struct IORegister<const ADDR: u16, const WRITE: u8, const READ: u8 = WRITE> {
     raw: u8,
+}
+
+impl<const ADDR: u16, const WRITE: u8, const READ: u8> SaveState for IORegister<ADDR, WRITE, READ> {
+    fn save(&self, w: &mut StateWriter) { w.write(&[self.raw]); }
+
+    fn load(&mut self, r: &mut StateReader) -> Result<(), SerdeError> {
+        self.raw = r.take(1)?[0];
+        Ok(())
+    }
 }
 
 impl<const ADDR: u16, const WRITE: u8, const READ: u8> IORegister<ADDR, WRITE, READ> {

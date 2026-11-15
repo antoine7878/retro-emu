@@ -23,7 +23,8 @@ pub enum Action {
     HoldTurbo(Turbo, bool),
     Press(Button),
     Release(Button),
-    Reload(String),
+    LoadFile(String),
+    SaveState,
 }
 
 pub struct Input {
@@ -56,9 +57,10 @@ impl Input {
         for event in self.event_pump.poll_iter() {
             match event {
                 Event::DropFile { filename, .. } => {
-                    out.push(Action::Reload(filename));
+                    out.push(Action::LoadFile(filename));
                 }
                 Event::Quit { .. } | Event::KeyDown { scancode: Some(Scancode::Escape), .. } => out.push(Action::Quit),
+                Event::KeyDown { scancode: Some(Scancode::Num1), .. } => out.push(Action::SaveState),
                 Event::KeyDown { scancode: Some(s), repeat: false, .. } => out.extend(Self::key(s).map(Action::Press)),
                 Event::KeyUp { scancode: Some(s), .. } => out.extend(Self::key(s).map(Action::Release)),
                 Event::ControllerButtonDown { button, .. } => out.extend(Self::pad_action(button, true)),
@@ -143,10 +145,10 @@ impl Input {
 
     fn key(scancode: Scancode) -> Option<Button> {
         match scancode {
-            Scancode::E => Some(Button::Up),
-            Scancode::D => Some(Button::Down),
-            Scancode::S => Some(Button::Left),
-            Scancode::F => Some(Button::Right),
+            Scancode::W => Some(Button::Up),
+            Scancode::S => Some(Button::Down),
+            Scancode::A => Some(Button::Left),
+            Scancode::D => Some(Button::Right),
             Scancode::J => Some(Button::B),
             Scancode::K => Some(Button::A),
             Scancode::U => Some(Button::Select),

@@ -3,6 +3,7 @@ use std::fmt;
 use crate::gameboy::config::ConsoleType;
 use crate::gameboy::cpu::flag::{FlagSpec, Flags};
 use crate::gameboy::cpu::instruction::{R8, R16, R16Stk};
+use crate::save_state_struct;
 
 const ZERO_FLAG: u8 = 7;
 const SUB_FLAG: u8 = 6;
@@ -21,6 +22,8 @@ pub struct CpuRegisters {
     sp: u16,
     pc: u16,
 }
+
+save_state_struct!(CpuRegisters { a, f, b, c, d, e, h, l, sp, pc });
 
 impl CpuRegisters {
     pub fn reset(&mut self, mode: &ConsoleType) {

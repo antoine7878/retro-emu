@@ -10,6 +10,8 @@ use mbc3::Mbc3;
 use mbc5::Mbc5;
 use rom_only::RomOnly;
 
+use crate::gameboy::serializer::{SaveState, SerdeError, StateReader, StateWriter};
+
 use super::header::{CartridgeHeader, MbcKind};
 
 pub trait MBC: Sized {
@@ -29,6 +31,28 @@ pub enum Mbcs {
     Mbc2(Mbc2),
     Mbc3(Mbc3),
     Mbc5(Mbc5),
+}
+
+impl SaveState for Mbcs {
+    fn save(&self, w: &mut StateWriter) {
+        match self {
+            Mbcs::RomOnly(m) => m.save(w),
+            Mbcs::Mbc1(m) => m.save(w),
+            Mbcs::Mbc2(m) => m.save(w),
+            Mbcs::Mbc3(m) => m.save(w),
+            Mbcs::Mbc5(m) => m.save(w),
+        }
+    }
+
+    fn load(&mut self, r: &mut StateReader) -> Result<(), SerdeError> {
+        match self {
+            Mbcs::RomOnly(m) => m.load(r),
+            Mbcs::Mbc1(m) => m.load(r),
+            Mbcs::Mbc2(m) => m.load(r),
+            Mbcs::Mbc3(m) => m.load(r),
+            Mbcs::Mbc5(m) => m.load(r),
+        }
+    }
 }
 
 impl Default for Mbcs {

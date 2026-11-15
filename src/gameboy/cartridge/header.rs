@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::gameboy::config::CGMode;
+use crate::{gameboy::config::CGMode, save_state_enum, save_state_struct};
 
 const ROM_SIZE_FLAG: usize = 0x0148;
 const RAM_SIZE_FLAG: usize = 0x149;
@@ -9,6 +9,8 @@ const TITLE_START: usize = 0x0134;
 const TITLE_END: usize = 0x0143;
 pub const CGB_FLAG: usize = 0x143;
 const CARTIDGE_TYPE: usize = 0x0147;
+const HEADER_CHECKSUM: usize = 0x014D;
+const GLOBAL_CHECKSUM: usize = 0x014E;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum MbcKind {
@@ -27,14 +29,19 @@ pub enum MbcKind {
     HuC1,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+save_state_enum!(MbcKind { None, Mbc1, Mbc2, Mmm01, Mbc3, Mbc5, Mbc6, Mbc7, PocketCamera, BandaiTama5, HuC3, HuC1 });
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub enum Addon {
+    #[default]
     Ram,
     Battery,
     Rtc,
     Rumble,
     Sensor,
 }
+
+save_state_enum!(Addon { Ram, Battery, Rtc, Rumble, Sensor });
 
 #[derive(Default)]
 pub struct CartridgeHeader {
@@ -44,7 +51,10 @@ pub struct CartridgeHeader {
     pub _cgb_mode: CGMode,
     pub mbc_kind: MbcKind,
     pub addons: HashSet<Addon>,
+    pub global_checksum: u16,
 }
+
+save_state_struct!(CartridgeHeader { rom_bank_count, rom_bank_count, rom_name, _cgb_mode, mbc_kind, addons });
 
 impl CartridgeHeader {
     pub fn try_new(rom: &[u8]) -> Option<Self> {
@@ -53,8 +63,23 @@ impl CartridgeHeader {
         let rom_name = Self::rom_name(rom)?;
         let cgb_mode = Self::mode(rom)?;
         let (mbc_kind, addons) = Self::cartridge_type(rom)?;
+        let global_checksum = u16::from_be_bytes([*rom.get(GLOBAL_CHECKSUM)?, *rom.get(GLOBAL_CHECKSUM + 1)?]);
         let ram_bank_count = if ram_bank_count == 0 && addons.contains(&Addon::Ram) { 1 } else { ram_bank_count };
-        Some(CartridgeHeader { rom_bank_count, ram_bank_count, rom_name, _cgb_mode: cgb_mode, mbc_kind, addons })
+        Some(CartridgeHeader {
+            rom_bank_count,
+            ram_bank_count,
+            rom_name,
+            _cgb_mode: cgb_mode,
+            mbc_kind,
+            addons,
+            global_checksum,
+        })
+    }
+
+    pub fn is_rom(data: &[u8]) -> bool {
+        let Some(bytes) = data.get(TITLE_START..HEADER_CHECKSUM) else { return false };
+        let checksum = bytes.iter().fold(0u8, |x, &b| x.wrapping_sub(b).wrapping_sub(1));
+        data.get(HEADER_CHECKSUM) == Some(&checksum) && Self::try_new(data).is_some()
     }
 
     fn rom_name(rom: &[u8]) -> Option<String> {

@@ -3,6 +3,7 @@ use std::time::Duration;
 
 use crate::frontend::FRAME_RATE;
 use crate::gameboy::memory::map;
+use crate::{save_state_enum, save_state_struct};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum CGMode {
@@ -12,12 +13,16 @@ pub enum CGMode {
     Cgb,
 }
 
+save_state_enum!(CGMode { Dmg, Enhanced, Cgb });
+
 #[derive(Debug, Clone)]
 pub struct Config {
     pub mode: ConsoleType,
     pub frame_time: Option<Duration>,
     pub serial_print: bool,
 }
+
+save_state_struct!(Config { mode });
 
 impl Config {
     pub fn new(serial_print: bool) -> Result<Self, Box<dyn Error>> {
@@ -31,6 +36,8 @@ pub enum ConsoleType {
     Dmg,
     Cgb,
 }
+
+save_state_enum!(ConsoleType { Dmg, Cgb });
 
 impl ConsoleType {
     fn to_int(&self) -> usize {

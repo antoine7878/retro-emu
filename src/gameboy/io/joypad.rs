@@ -1,6 +1,7 @@
 use crate::gameboy::config::ConsoleType;
 use crate::gameboy::memory::io_reg::IOReg;
 use crate::gameboy::memory::map;
+use crate::save_state_struct;
 
 const UNUSED_BITS: u8 = 0b1100_0000;
 const SELECT_BUTTONS: u8 = 0b0010_0000;
@@ -50,6 +51,8 @@ pub struct Joypad {
     dpad: u8,
     buttons: u8,
 }
+
+save_state_struct!(Joypad { select, dpad, buttons });
 
 impl IOReg for Joypad {
     fn read(&self) -> u8 {

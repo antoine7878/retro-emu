@@ -1,5 +1,6 @@
 use crate::gameboy::cartridge::header::{Addon, CartridgeHeader};
 use crate::gameboy::memory::map;
+use crate::save_state_struct;
 
 use super::MBC;
 
@@ -8,6 +9,8 @@ pub struct RomOnly {
     rom: Vec<u8>,
     ram: Option<[u8; 1 << 13]>,
 }
+
+save_state_struct!(RomOnly { ram });
 
 impl MBC for RomOnly {
     fn try_from_header(rom: Vec<u8>, header: &CartridgeHeader) -> Option<Self> {

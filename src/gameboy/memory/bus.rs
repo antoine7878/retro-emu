@@ -10,6 +10,7 @@ use crate::gameboy::memory::io_reg::IOReg;
 use crate::gameboy::memory::map;
 use crate::gameboy::memory::wram::WRam;
 use crate::gameboy::monitor::MemAccess;
+use crate::save_state_struct;
 
 use super::map::{OAM_END, OAM_START, VRAM_END, VRAM_START};
 
@@ -27,6 +28,9 @@ pub struct Bus {
     dma: DMA,
     accesses: Vec<MemAccess>,
 }
+
+#[rustfmt::skip]
+save_state_struct!(Bus {cartridge, ppu, wram, hram, cycle_count, interrupter, joypad, timer, link, trace, dma});
 
 impl Default for Bus {
     fn default() -> Self {
@@ -48,7 +52,7 @@ impl Default for Bus {
 }
 
 impl Bus {
-    pub fn reset(&mut self, mode: &ConsoleType, rom: Vec<u8>) {
+    pub fn reset(&mut self, mode: &ConsoleType) {
         self.dma.reset(mode);
         self.ppu.reset(mode);
         self.wram.reset(mode);
@@ -59,8 +63,9 @@ impl Bus {
         self.hram = [0; map::HRAM_SIZE];
         self.cycle_count = 0;
         self.accesses.clear();
-        self.cartridge = Cartridge::try_new(rom).unwrap_or_default();
     }
+
+    pub fn load_rom(&mut self, rom: Vec<u8>) { self.cartridge = Cartridge::try_new(rom).unwrap_or_default(); }
 
     pub fn read_internal(&self, addr: u16) -> u8 {
         match addr {

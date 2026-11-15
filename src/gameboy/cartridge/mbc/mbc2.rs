@@ -1,5 +1,6 @@
 use crate::gameboy::cartridge::header::CartridgeHeader;
 use crate::gameboy::memory::map;
+use crate::save_state_struct;
 
 use super::MBC;
 
@@ -10,6 +11,8 @@ pub struct Mbc2 {
     rom_bank_count: usize,
     ram_enabled: bool,
 }
+
+save_state_struct!(Mbc2 { ram, selected_rom_bank, rom_bank_count, ram_enabled });
 
 const RAM_SIZE: usize = 512;
 

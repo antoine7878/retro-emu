@@ -37,13 +37,7 @@ impl ArgParser for Args {
 
 impl Default for Args {
     fn default() -> Self {
-        Self {
-            infiles: Vec::default(),
-            debug: false,
-            argv: argv(),
-            debug_init_file: None,
-            serial_print: false,
-        }
+        Self { infiles: Vec::default(), debug: false, argv: argv(), debug_init_file: None, serial_print: false }
     }
 }
 

@@ -2,6 +2,7 @@ use std::io::Write;
 
 use crate::gameboy::memory::bus::Bus;
 use crate::gameboy::memory::map;
+use crate::save_state_struct;
 
 const STATUS: u16 = map::SRAM_START;
 const SIGNATURE_ADDR: u16 = map::SRAM_START + 1;
@@ -14,6 +15,8 @@ pub struct SramOutput {
     printed: u16,
     done: bool,
 }
+
+save_state_struct!(SramOutput { printed, done });
 
 impl SramOutput {
     pub fn reset(&mut self) { *self = Self::default(); }

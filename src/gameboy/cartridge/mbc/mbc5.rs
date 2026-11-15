@@ -1,5 +1,6 @@
 use crate::gameboy::cartridge::header::CartridgeHeader;
 use crate::gameboy::memory::map;
+use crate::save_state_struct;
 
 use super::MBC;
 
@@ -19,6 +20,9 @@ pub struct Mbc5 {
     motor_on: u32,
     motor_writes: u32,
 }
+
+#[rustfmt::skip]
+save_state_struct!(Mbc5 { ram, rom_bank_count, ram_bank_count, rom_select_0, rom_select_1, ram_select, ram_enabled, rumble, motor, motor_on, motor_writes });
 
 impl MBC for Mbc5 {
     fn try_from_header(rom: Vec<u8>, header: &CartridgeHeader) -> Option<Self> {

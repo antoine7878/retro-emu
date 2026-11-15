@@ -4,6 +4,7 @@ mod timing;
 mod video;
 
 use std::error::Error;
+use std::fs;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
 use sdl2::Sdl;
@@ -11,6 +12,7 @@ use sdl2::Sdl;
 use crate::cli::Args;
 use crate::debugger::{Debugger, prompt};
 use crate::gameboy::GameBoy;
+use crate::utils::timestamp;
 use debug::{DebugSession, Effect};
 use input::{Action, Input};
 use timing::Pacer;
@@ -63,8 +65,18 @@ impl Frontend {
                         self.video.set_title(game_boy, pacer.speed(), None);
                     }
                 }
-                Action::Reload(filename) => {
-                    let _ = game_boy.load_file(Some(&filename));
+                Action::LoadFile(filename) => {
+                    if let Err(e) = game_boy.load_file(Some(&filename)) {
+                        eprintln!("Failed to load {}: {}", filename, e);
+                    }
+                }
+                Action::SaveState => {
+                    let state = game_boy.save_state();
+                    let file_name = format!("{}_{}.state", timestamp(), game_boy.bus().cartridge().header().rom_name);
+                    match fs::write(&file_name, state) {
+                        Ok(_) => eprintln!("SaveState success full at: {}", file_name),
+                        Err(e) => eprintln!("SaveState failed: {}", e),
+                    }
                 }
             }
         }
@@ -78,7 +90,7 @@ impl Frontend {
                 Effect::None => {}
                 Effect::RaiseWindow => self.video.raise(),
                 Effect::Reset => {
-                    game_boy.load(game_boy.bus().cartridge().rom());
+                    game_boy.load_rom(game_boy.bus().cartridge().rom());
                     self.video.reset_fps();
                 }
             }

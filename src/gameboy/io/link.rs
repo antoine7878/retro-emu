@@ -4,6 +4,7 @@ use crate::gameboy::config::ConsoleType;
 use crate::gameboy::io::interrupt::InterruptFlag;
 use crate::gameboy::memory::io_reg::{IOReg, IORegister};
 use crate::gameboy::memory::map;
+use crate::save_state_struct;
 
 const NORMAL_CYCLES: u16 = 512;
 const FAST_CYCLES: u16 = 16;
@@ -16,6 +17,8 @@ pub struct Link {
     cgb: bool,
     remaining: u16,
 }
+
+save_state_struct!(Link { buffer, ctrl, print, cgb, remaining });
 
 impl Link {
     pub fn set_print(&mut self, on: bool) { self.print = on; }

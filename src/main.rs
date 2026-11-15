@@ -2,6 +2,7 @@ mod cli;
 mod debugger;
 mod frontend;
 mod gameboy;
+mod utils;
 
 use frontend::Frontend;
 

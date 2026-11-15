@@ -2,6 +2,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::gameboy::cartridge::header::CartridgeHeader;
 use crate::gameboy::memory::map;
+use crate::save_state_struct;
 
 use super::MBC;
 
@@ -22,6 +23,9 @@ pub struct Mbc3 {
 
     rtc_clock: u32,
 }
+
+#[rustfmt::skip]
+save_state_struct!(Mbc3 { ram, rom_bank_count, ram_bank_count, ram_size, selected_rom_bank, selected_ram_bank, prev_latch_reg, ram_enabled, has_rtc, time, latch, rtc_clock });
 
 const TIME_MASKS: [u8; 5] = [0x3F, 0x3F, 0x1F, 0xFF, 0xC1];
 

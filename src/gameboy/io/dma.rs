@@ -1,6 +1,7 @@
 use crate::gameboy::config::ConsoleType;
 use crate::gameboy::memory::io_reg::IOReg;
 use crate::gameboy::memory::{io_reg::IORegister, map};
+use crate::save_state_struct;
 
 #[derive(Default)]
 pub struct DMA {
@@ -12,6 +13,8 @@ pub struct DMA {
     i: u16,
     dma: IORegister<{ map::DMA }, 0xFF>,
 }
+
+save_state_struct!(DMA { is_delay, is_active, has_transferred, current_byte, src, i, dma });
 
 impl DMA {
     pub fn reset(&mut self, mode: &ConsoleType) { self.dma.reset(mode); }

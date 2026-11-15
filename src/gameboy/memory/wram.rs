@@ -1,11 +1,14 @@
 use crate::gameboy::config::ConsoleType;
 use crate::gameboy::memory::io_reg::{IOReg, IORegister};
 use crate::gameboy::memory::map;
+use crate::save_state_struct;
 
 pub struct WRam {
     banks: [[u8; map::WRAM_SIZE]; 8],
     svbk: IORegister<{ map::SVBK }, 0x07>,
 }
+
+save_state_struct!(WRam { banks, svbk });
 
 impl Default for WRam {
     fn default() -> Self { Self { banks: [[0; map::WRAM_SIZE]; 8], svbk: IORegister::default() } }

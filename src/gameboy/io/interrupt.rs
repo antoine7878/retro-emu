@@ -1,6 +1,7 @@
 use crate::gameboy::config::ConsoleType;
 use crate::gameboy::memory::io_reg::{IOReg, IORegister};
 use crate::gameboy::memory::map;
+use crate::save_state_struct;
 
 pub type InterruptFlag = IORegister<{ map::IF }, 0x1F>;
 
@@ -9,6 +10,8 @@ pub struct Interrupter {
     ie: IORegister<{ map::IE }, 0xFF>,
     ifl: InterruptFlag,
 }
+
+save_state_struct!(Interrupter { ie, ifl });
 
 impl Interrupter {
     pub fn pending(&self) -> u8 { self.ie.read() & self.ifl.read() & 0x1F }

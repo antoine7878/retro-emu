@@ -2,6 +2,7 @@ use crate::gameboy::config::ConsoleType;
 use crate::gameboy::io::interrupt::InterruptFlag;
 use crate::gameboy::memory::io_reg::{IOReg, IORegister};
 use crate::gameboy::memory::map;
+use crate::{save_state_enum, save_state_struct};
 
 pub const WIDTH: usize = 160;
 pub const HEIGHT: usize = 144;
@@ -32,6 +33,8 @@ pub enum PpuMode {
     OamScan = 2,
     Drawing = 3,
 }
+
+save_state_enum!(PpuMode { HBlank, VBlank, OamScan, Drawing });
 
 impl PpuMode {
     const fn end_dot(self) -> u16 {
@@ -82,6 +85,9 @@ pub struct Ppu {
     wx: IORegister<{ map::WX }, 0xFF>,
     vbk: IORegister<{ map::VBK }, 0x01>,
 }
+
+#[rustfmt::skip]
+save_state_struct!(Ppu {pixels, redraw, dot,  mode, dmg, window_line, first_line, skip_frame, selected_objects, selected_objects_len, vram, oam, lcdc, stat, scy, scx, ly, lyc, bgp, obp0, obp1, wy, wx, vbk});
 
 impl Default for Ppu {
     fn default() -> Self {
@@ -143,9 +149,7 @@ impl Ppu {
             map::PAL_START..map::PAL_END => 0xFF,
             map::LCDC => self.lcdc.read(),
             map::STAT => {
-                self.stat.read() & 0xF8
-                    | ((self.ly.read_raw() == self.lyc.read_raw()) as u8) << 2
-                    | self.mode as u8
+                self.stat.read() & 0xF8 | ((self.ly.read_raw() == self.lyc.read_raw()) as u8) << 2 | self.mode as u8
             }
             map::SCY => self.scy.read(),
             map::SCX => self.scx.read(),

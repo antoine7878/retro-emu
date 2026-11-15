@@ -5,6 +5,7 @@ rscs/blargg_test-roms/
 rscs/subject-test-roms/
 rscs/games/
 *.save
+*.state
 
 todo*
 

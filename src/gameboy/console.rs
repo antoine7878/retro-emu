@@ -1,6 +1,6 @@
 use std::fs;
-use std::path::PathBuf;
 
+use crate::gameboy::cartridge::{CartridgeHeader, MAGIC_SAVE};
 use crate::gameboy::config::Config;
 use crate::gameboy::cpu::Cpu;
 use crate::gameboy::cpu::instruction::Instruction;
@@ -8,6 +8,9 @@ use crate::gameboy::io::joypad::Button;
 use crate::gameboy::memory::bus::Bus;
 use crate::gameboy::monitor::Monitor;
 use crate::gameboy::sram_output::SramOutput;
+use crate::save_state_struct;
+
+use super::serializer::{SaveState, SerdeError, StateReader, StateWriter};
 
 pub const CYCLES_PER_FRAME: u64 = 17556;
 
@@ -18,6 +21,12 @@ pub struct GameBoy {
     pub config: Config,
 }
 
+save_state_struct!(GameBoy { config, cpu, bus, sram_output });
+
+const NO_GAME_ROM: &[u8; 32768] = include_bytes!("./../../rscs/error_roms/no_game.gb");
+const MAGIC_STATE: &[u8; 7] = b"GBSTATE";
+const VERSION: u16 = 43;
+
 impl GameBoy {
     pub fn new(config: Config) -> Self {
         let mut bus = Bus::default();
@@ -27,32 +36,40 @@ impl GameBoy {
     }
 
     pub fn load_file(&mut self, filename: Option<&String>) -> Result<(), Box<dyn std::error::Error>> {
-        let Some(filename) = filename else { return self.load_rom_file(None) };
-        let buf = PathBuf::from(filename);
-        match buf.extension().unwrap().to_str().unwrap() {
-            "gb" | "gbc" => self.load_rom_file(Some(filename)),
-            "save" => self.load_save_file(),
-            "state" => self.load_state_file(),
-            _ => Ok(()),
-        }
-    }
-
-    fn load_rom_file(&mut self, filename: Option<&String>) -> Result<(), Box<dyn std::error::Error>> {
-        let rom = match filename {
-            Some(file) => fs::read(file)?,
-            None => include_bytes!("./../../rscs/error_roms/no_game.gb").to_vec(),
+        let Some(filename) = filename else {
+            self.load_rom(NO_GAME_ROM.to_vec());
+            return Ok(());
         };
-        self.load(rom);
+        let data = fs::read(filename)?;
+        if data.starts_with(MAGIC_STATE) {
+            self.load_state(&data)?;
+        } else if data.starts_with(MAGIC_SAVE) {
+            self.load_save(&data)?;
+        } else if CartridgeHeader::is_rom(&data) {
+            self.load_rom(data);
+        } else {
+            return Err(format!("{filename}: unknown file type").into());
+        }
         Ok(())
     }
-    fn load_save_file(&mut self) -> Result<(), Box<dyn std::error::Error>> { Ok(()) }
-    fn load_state_file(&mut self) -> Result<(), Box<dyn std::error::Error>> { Ok(()) }
 
-    pub fn load(&mut self, rom: Vec<u8>) {
-        self.bus.reset(&self.config.mode, rom);
+    pub fn load_save(&mut self, data: &[u8]) -> Result<(), SerdeError> {
+        let ram = self.bus.cartridge().parse_save(data)?;
+        let rom = self.bus.cartridge().rom();
+        self.load_rom(rom);
+        self.bus.cartridge_mut().load_ram(ram);
+        Ok(())
+    }
+
+    pub fn reset(&mut self) {
+        self.bus.reset(&self.config.mode);
         self.cpu.reset(&self.config.mode);
         self.sram_output.reset();
-        self.bus.cartridge_mut().load_ram();
+    }
+
+    pub fn load_rom(&mut self, rom: Vec<u8>) {
+        self.reset();
+        self.bus.load_rom(rom);
     }
 
     pub fn run_frame<M: Monitor>(&mut self, mut dbg: Option<&mut M>) -> Option<M::Stop> {
@@ -121,4 +138,36 @@ impl GameBoy {
     pub fn press(&mut self, button: Button) { self.bus.press(button); }
     pub fn release(&mut self, button: Button) { self.bus.joypad_mut().release(button); }
     pub fn take_rumble(&mut self) -> f32 { self.bus.cartridge_mut().take_rumble() }
+
+    pub fn save_state(&self) -> Vec<u8> {
+        let mut w = StateWriter::default();
+        w.write(MAGIC_STATE);
+        VERSION.save(&mut w);
+        self.bus.cartridge().rom().save(&mut w);
+        self.save(&mut w);
+        w.into_bytes()
+    }
+
+    pub fn load_state(&mut self, data: &[u8]) -> Result<(), SerdeError> {
+        let mut r = StateReader::new(data);
+        if r.take(MAGIC_STATE.len())? != MAGIC_STATE {
+            return SerdeError::new("header", "not a state file");
+        }
+        let mut version = 0u16;
+        version.load(&mut r)?;
+        if version != VERSION {
+            return SerdeError::new("header", "unsupported version");
+        }
+        let mut len = 0usize;
+        len.load(&mut r)?;
+        let rom = r.take(len)?.to_vec();
+
+        let mut next = GameBoy::new(self.config.clone());
+        next.load_rom(rom);
+        next.load(&mut r)?;
+
+        self.bus.cartridge().save_ram();
+        *self = next;
+        Ok(())
+    }
 }

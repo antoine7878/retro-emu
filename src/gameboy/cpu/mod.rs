@@ -6,11 +6,14 @@ mod shift;
 
 use crate::gameboy::memory::bus::Bus;
 use crate::gameboy::memory::map;
+use crate::{save_state_enum, save_state_struct};
+
 use flag::{FlagSpec, Flags};
 use instruction::{AluOp, Cond, Instruction, R8, R16, R16Mem, R16Stk, ShiftOp};
 use registers::CpuRegisters;
 
-use super::{config::ConsoleType, memory::io_reg::IOReg};
+use super::config::ConsoleType;
+use super::memory::io_reg::IOReg;
 
 #[derive(Debug, PartialEq, Eq, Default)]
 pub enum PowerMode {
@@ -21,6 +24,8 @@ pub enum PowerMode {
     Illegal,
 }
 
+save_state_enum!(PowerMode { Normal, Halt, Stop, Illegal });
+
 #[derive(Default)]
 pub struct Cpu {
     power_mode: PowerMode,
@@ -29,6 +34,8 @@ pub struct Cpu {
     delay_ie: bool,
     halt_bug: bool,
 }
+
+save_state_struct!(Cpu { power_mode, ime, registers, delay_ie, halt_bug });
 
 impl Cpu {
     pub fn reset(&mut self, mode: &ConsoleType) {

@@ -1,5 +1,7 @@
 use std::fmt;
 
+use crate::save_state_struct;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum AccessKind {
     Read,
@@ -22,6 +24,8 @@ pub struct MemAccess {
     pub value: u8,
     pub on: AccessKind,
 }
+
+save_state_struct!(MemAccess { addr, value });
 
 impl MemAccess {
     pub fn read(addr: u16, value: u8) -> Self { Self { addr, value, on: AccessKind::Read } }

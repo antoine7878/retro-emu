@@ -1,17 +1,24 @@
 mod header;
 mod mbc;
 
-use std::io::Write;
-use std::{fs::File, io::Read};
+use std::fs;
 
 pub use header::CartridgeHeader;
 use mbc::{MBC, Mbcs};
+
+use crate::gameboy::serializer::{SaveState, SerdeError, StateReader, StateWriter};
+use crate::save_state_struct;
+
+pub const MAGIC_SAVE: &[u8; 7] = b"GB_SAVE";
+const SAVE_VERSION: u16 = 1;
 
 pub struct Cartridge {
     mbc: Mbcs,
     header: CartridgeHeader,
     file_name: String,
 }
+
+save_state_struct!(Cartridge { mbc, header, file_name });
 
 impl Default for Cartridge {
     fn default() -> Self {
@@ -25,26 +32,67 @@ impl Cartridge {
         let header = CartridgeHeader::try_new(&rom)?;
         let mbc = Mbcs::try_from_header(rom, &header)?;
         let file_name = format!("{}.save", header.rom_name);
-        Some(Self { header, mbc, file_name })
+        let mut cart = Self { header, mbc, file_name };
+        cart.load_ram_file();
+        Some(cart)
     }
 
-    pub fn load_ram(&mut self) {
+    fn load_ram_file(&mut self) {
         if !self.header.has_battery() {
             return;
         }
-        let mut ram = Vec::new();
-        let Ok(_) = File::open(&self.file_name).and_then(|mut f| f.read_to_end(&mut ram)) else { return };
-        self.mbc.load_ram(ram);
+        let Ok(data) = fs::read(&self.file_name) else { return };
+        match self.parse_save(&data) {
+            Ok(ram) => self.load_ram(ram),
+            Err(e) => eprintln!("Ignoring save file {}: {}", self.file_name, e),
+        }
     }
 
     pub fn save_ram(&self) {
         if !self.header.has_battery() {
             return;
         }
-        let ram = self.mbc.ram();
-        let Ok(mut file) = File::create(&self.file_name) else { return };
-        let Ok(()) = file.write_all(&ram) else { return };
+        if let Err(e) = fs::write(&self.file_name, self.save_data()) {
+            eprintln!("Failed to write save file {}: {}", self.file_name, e);
+        }
     }
+
+    pub fn save_data(&self) -> Vec<u8> {
+        let mut w = StateWriter::default();
+        w.write(MAGIC_SAVE);
+        SAVE_VERSION.save(&mut w);
+        self.header.rom_name.save(&mut w);
+        self.header.global_checksum.save(&mut w);
+        self.mbc.ram().save(&mut w);
+        w.into_bytes()
+    }
+
+    pub fn parse_save(&self, data: &[u8]) -> Result<Vec<u8>, SerdeError> {
+        if !self.header.has_battery() {
+            return SerdeError::new("save", "cartridge has no battery");
+        }
+        let mut r = StateReader::new(data);
+        if r.take(MAGIC_SAVE.len())? != MAGIC_SAVE {
+            return SerdeError::new("header", "not a save file");
+        }
+        let mut version = 0u16;
+        version.load(&mut r)?;
+        if version != SAVE_VERSION {
+            return SerdeError::new("header", "unsupported version");
+        }
+        let mut rom_name = String::new();
+        rom_name.load(&mut r)?;
+        let mut global_checksum = 0u16;
+        global_checksum.load(&mut r)?;
+        if rom_name != self.header.rom_name || global_checksum != self.header.global_checksum {
+            return SerdeError::new("header", "save belongs to another game");
+        }
+        let mut len = 0usize;
+        len.load(&mut r)?;
+        Ok(r.take(len)?.to_vec())
+    }
+
+    pub fn load_ram(&mut self, ram: Vec<u8>) { self.mbc.load_ram(ram); }
 
     pub fn read(&self, addr: u16) -> u8 { self.mbc.read(addr) }
     pub fn write(&mut self, addr: u16, value: u8) { self.mbc.write(addr, value); }
