@@ -12,4 +12,7 @@ debug:
 help:
 	cargo run --release -- -h
 
-.PHONY: test debug help ctest
+roms:
+	$(MAKE) -C roms
+
+.PHONY: test debug help ctest roms

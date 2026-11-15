@@ -7,6 +7,7 @@ use crate::gameboy::cpu::instruction::Instruction;
 use crate::gameboy::io::joypad::Button;
 use crate::gameboy::memory::bus::Bus;
 use crate::gameboy::monitor::Monitor;
+use crate::gameboy::roms;
 use crate::gameboy::sram_output::SramOutput;
 use crate::save_state_struct;
 
@@ -23,7 +24,6 @@ pub struct GameBoy {
 
 save_state_struct!(GameBoy { config, cpu, bus, sram_output });
 
-const NO_GAME_ROM: &[u8; 32768] = include_bytes!("./../../rscs/error_roms/no_game.gb");
 const MAGIC_STATE: &[u8; 7] = b"GBSTATE";
 
 impl GameBoy {
@@ -36,7 +36,7 @@ impl GameBoy {
 
     pub fn load_file(&mut self, filename: Option<&String>) -> Result<(), Box<dyn std::error::Error>> {
         let Some(filename) = filename else {
-            self.load_rom(NO_GAME_ROM.to_vec());
+            self.load_rom(roms::NO_GAME.to_vec());
             return Ok(());
         };
         let data = fs::read(filename)?;

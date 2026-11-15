@@ -5,6 +5,7 @@ mod cpu;
 mod io;
 mod memory;
 mod monitor;
+mod roms;
 mod serializer;
 mod sram_output;
 

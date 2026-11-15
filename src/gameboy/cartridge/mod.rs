@@ -6,6 +6,7 @@ use std::fs;
 pub use header::CartridgeHeader;
 use mbc::{MBC, Mbcs};
 
+use crate::gameboy::roms;
 use crate::gameboy::serializer::{SaveState, SerdeError, StateReader, StateWriter};
 use crate::save_state_struct;
 
@@ -25,7 +26,7 @@ save_state_struct!(Cartridge { mbc, header, file_name });
 
 impl Default for Cartridge {
     fn default() -> Self {
-        let bad_rom = include_bytes!("./../../../rscs/error_roms/bad_game.gb").to_vec();
+        let bad_rom = roms::BAD_GAME.to_vec();
         Cartridge::try_new(Model::Dmg, bad_rom).unwrap()
     }
 }
