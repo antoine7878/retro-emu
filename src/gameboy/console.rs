@@ -25,7 +25,6 @@ save_state_struct!(GameBoy { config, cpu, bus, sram_output });
 
 const NO_GAME_ROM: &[u8; 32768] = include_bytes!("./../../rscs/error_roms/no_game.gb");
 const MAGIC_STATE: &[u8; 7] = b"GBSTATE";
-const VERSION: u16 = 43;
 
 impl GameBoy {
     pub fn new(config: Config) -> Self {
@@ -142,7 +141,6 @@ impl GameBoy {
     pub fn save_state(&self) -> Vec<u8> {
         let mut w = StateWriter::default();
         w.write(MAGIC_STATE);
-        VERSION.save(&mut w);
         self.bus.cartridge().rom().save(&mut w);
         self.save(&mut w);
         w.into_bytes()
@@ -152,11 +150,6 @@ impl GameBoy {
         let mut r = StateReader::new(data);
         if r.take(MAGIC_STATE.len())? != MAGIC_STATE {
             return SerdeError::new("header", "not a state file");
-        }
-        let mut version = 0u16;
-        version.load(&mut r)?;
-        if version != VERSION {
-            return SerdeError::new("header", "unsupported version");
         }
         let mut len = 0usize;
         len.load(&mut r)?;
