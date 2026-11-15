@@ -22,7 +22,7 @@ pub trait MBC: Sized {
     fn ram(&self) -> Vec<u8>;
     fn load_ram(&mut self, ram: Vec<u8>);
     fn take_rumble(&mut self) -> f32 { 0. }
-    fn tick(&mut self) {}
+    fn tick(&mut self, _: u8) {}
 }
 
 pub enum Mbcs {
@@ -33,26 +33,21 @@ pub enum Mbcs {
     Mbc5(Mbc5),
 }
 
-impl SaveState for Mbcs {
-    fn save(&self, w: &mut StateWriter) {
-        match self {
-            Mbcs::RomOnly(m) => m.save(w),
-            Mbcs::Mbc1(m) => m.save(w),
-            Mbcs::Mbc2(m) => m.save(w),
-            Mbcs::Mbc3(m) => m.save(w),
-            Mbcs::Mbc5(m) => m.save(w),
+macro_rules! dispatch {
+    ($self:expr, $field:ident $(, $arg:expr)*) => {
+        match $self {
+            Mbcs::RomOnly(m) => m.$field($($arg,)*),
+            Mbcs::Mbc1(m) => m.$field($($arg,)*),
+            Mbcs::Mbc2(m) => m.$field($($arg,)*),
+            Mbcs::Mbc3(m) => m.$field($($arg,)*),
+            Mbcs::Mbc5(m) => m.$field($($arg,)*),
         }
-    }
+    };
+}
 
-    fn load(&mut self, r: &mut StateReader) -> Result<(), SerdeError> {
-        match self {
-            Mbcs::RomOnly(m) => m.load(r),
-            Mbcs::Mbc1(m) => m.load(r),
-            Mbcs::Mbc2(m) => m.load(r),
-            Mbcs::Mbc3(m) => m.load(r),
-            Mbcs::Mbc5(m) => m.load(r),
-        }
-    }
+impl SaveState for Mbcs {
+    fn save(&self, w: &mut StateWriter) { dispatch!(self, save, w) }
+    fn load(&mut self, r: &mut StateReader) -> Result<(), SerdeError> { dispatch!(self, load, r) }
 }
 
 impl Default for Mbcs {
@@ -71,66 +66,11 @@ impl MBC for Mbcs {
         }
     }
 
-    fn read(&self, addr: u16) -> u8 {
-        match self {
-            Mbcs::RomOnly(m) => m.read(addr),
-            Mbcs::Mbc1(m) => m.read(addr),
-            Mbcs::Mbc2(m) => m.read(addr),
-            Mbcs::Mbc3(m) => m.read(addr),
-            Mbcs::Mbc5(m) => m.read(addr),
-        }
-    }
-
-    fn write(&mut self, addr: u16, value: u8) {
-        match self {
-            Mbcs::RomOnly(m) => m.write(addr, value),
-            Mbcs::Mbc1(m) => m.write(addr, value),
-            Mbcs::Mbc2(m) => m.write(addr, value),
-            Mbcs::Mbc3(m) => m.write(addr, value),
-            Mbcs::Mbc5(m) => m.write(addr, value),
-        }
-    }
-
-    fn rom(&self) -> Vec<u8> {
-        match self {
-            Mbcs::RomOnly(m) => m.rom(),
-            Mbcs::Mbc1(m) => m.rom(),
-            Mbcs::Mbc2(m) => m.rom(),
-            Mbcs::Mbc3(m) => m.rom(),
-            Mbcs::Mbc5(m) => m.rom(),
-        }
-    }
-
-    fn ram(&self) -> Vec<u8> {
-        match self {
-            Mbcs::RomOnly(m) => m.ram(),
-            Mbcs::Mbc1(m) => m.ram(),
-            Mbcs::Mbc2(m) => m.ram(),
-            Mbcs::Mbc3(m) => m.ram(),
-            Mbcs::Mbc5(m) => m.ram(),
-        }
-    }
-
-    fn load_ram(&mut self, ram: Vec<u8>) {
-        match self {
-            Mbcs::RomOnly(m) => m.load_ram(ram),
-            Mbcs::Mbc1(m) => m.load_ram(ram),
-            Mbcs::Mbc2(m) => m.load_ram(ram),
-            Mbcs::Mbc3(m) => m.load_ram(ram),
-            Mbcs::Mbc5(m) => m.load_ram(ram),
-        }
-    }
-
-    fn tick(&mut self) {
-        if let Mbcs::Mbc3(m) = self {
-            m.tick();
-        }
-    }
-
-    fn take_rumble(&mut self) -> f32 {
-        match self {
-            Mbcs::Mbc5(m) => m.take_rumble(),
-            _ => 0.,
-        }
-    }
+    fn read(&self, addr: u16) -> u8 { dispatch!(self, read, addr) }
+    fn write(&mut self, addr: u16, value: u8) { dispatch!(self, write, addr, value) }
+    fn rom(&self) -> Vec<u8> { dispatch!(self, rom) }
+    fn ram(&self) -> Vec<u8> { dispatch!(self, ram) }
+    fn load_ram(&mut self, ram: Vec<u8>) { dispatch!(self, load_ram, ram) }
+    fn tick(&mut self, dots: u8) { dispatch!(self, tick, dots) }
+    fn take_rumble(&mut self) -> f32 { dispatch!(self, take_rumble) }
 }
