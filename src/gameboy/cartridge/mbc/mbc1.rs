@@ -12,8 +12,8 @@ pub struct Mbc1 {
     rom_bank_count: usize,
     ram_bank_count: usize,
     ram_size: usize,
-    bank1: IORegister<0x00, 0x1F>,
-    bank2: IORegister<0x00, 0x03>,
+    bank1: IORegister<0x1F>,
+    bank2: IORegister<0x03>,
     ram_enabled: bool,
     banking_mode: u8,
 }

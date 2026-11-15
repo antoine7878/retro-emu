@@ -66,6 +66,7 @@ pub struct Ppu {
 
     first_line: bool,
     skip_frame: bool,
+    hblank_started: bool,
 
     selected_objects: [[u8; 4]; 10],
     selected_objects_len: usize,
@@ -87,7 +88,7 @@ pub struct Ppu {
 }
 
 #[rustfmt::skip]
-save_state_struct!(Ppu {pixels, redraw, dot,  mode, dmg, window_line, first_line, skip_frame, selected_objects, selected_objects_len, vram, oam, lcdc, stat, scy, scx, ly, lyc, bgp, obp0, obp1, wy, wx, vbk, stat_line, wy_triggered});
+save_state_struct!(Ppu {pixels, redraw, dot,  mode, dmg, window_line, first_line, skip_frame, hblank_started, selected_objects, selected_objects_len, vram, oam, lcdc, stat, scy, scx, ly, lyc, bgp, obp0, obp1, wy, wx, vbk, stat_line, wy_triggered});
 
 impl Default for Ppu {
     fn default() -> Self {
@@ -104,6 +105,7 @@ impl Default for Ppu {
             wy_triggered: false,
             first_line: false,
             skip_frame: false,
+            hblank_started: false,
             lcdc: IORegister::default(),
             stat: IORegister::default(),
             scy: IORegister::default(),
@@ -132,8 +134,6 @@ impl Ppu {
         match addr {
             map::VRAM_START..map::VRAM_END => self.read_vram(addr),
             map::OAM_START..map::OAM_END => self.read_oam(addr),
-            // TODO: DMA CGB
-            map::DMA_START..map::DMA_END => 0xFF,
             map::PAL_START..map::PAL_END => 0xFF,
             map::LCDC => self.lcdc.read(),
             map::STAT => {
@@ -171,8 +171,6 @@ impl Ppu {
         match addr {
             map::VRAM_START..map::VRAM_END => self.write_vram(addr, value),
             map::OAM_START..map::OAM_END => self.write_oam(addr, value),
-            // TODO: DMA CGB
-            map::DMA_START..map::DMA_END => (),
             map::PAL_START..map::PAL_END => (),
             map::LCDC => self.write_lcdc(value),
             map::STAT => self.stat.write(value),
@@ -242,8 +240,7 @@ impl Ppu {
 
     pub fn write_vram(&mut self, addr: u16, value: u8) {
         if self.mode != PpuMode::Drawing {
-            let bank = self.vram_bank();
-            self.vram[bank][(addr - map::VRAM_START) as usize] = value;
+            self.write_vram_dma(addr, value);
         }
     }
 
@@ -259,6 +256,15 @@ impl Ppu {
     pub fn read_vram_dma(&self, addr: u16) -> u8 { self.vram[self.vram_bank()][(addr - map::VRAM_START) as usize] }
 
     pub fn write_oam_dma(&mut self, i: u16, value: u8) { self.oam[i as usize] = value; }
+
+    pub fn write_vram_dma(&mut self, addr: u16, value: u8) {
+        let bank = self.vram_bank();
+        self.vram[bank][(addr - map::VRAM_START) as usize] = value;
+    }
+
+    pub fn in_hblank(&self) -> bool { self.mode == PpuMode::HBlank }
+
+    pub fn take_hblank_started(&mut self) -> bool { std::mem::take(&mut self.hblank_started) }
 
     fn vram_bank(&self) -> usize { self.vbk.read_raw() as usize & 0x01 }
 
@@ -307,6 +313,7 @@ impl Ppu {
                 PpuMode::Drawing => {
                     self.render_scanline();
                     self.set_mode(PpuMode::HBlank, ifl);
+                    self.hblank_started = true;
                 }
                 PpuMode::HBlank | PpuMode::VBlank => {
                     self.dot = 0;

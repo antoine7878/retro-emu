@@ -80,6 +80,7 @@ impl GameBoy {
                 break;
             }
             if !self.cpu.halted(&mut self.bus) {
+                self.bus.run_hdma();
                 if let Some(r) = dbg.as_deref_mut().and_then(|d| d.check(self.cpu.pc())) {
                     return Some(r);
                 }

@@ -2,7 +2,8 @@ use std::vec::Drain;
 
 use crate::gameboy::cartridge::Cartridge;
 use crate::gameboy::config::Model;
-use crate::gameboy::io::dma::DMA;
+use crate::gameboy::io::oam_dma::OamDma;
+use crate::gameboy::io::hdma::Hdma;
 use crate::gameboy::io::interrupt::Interrupter;
 use crate::gameboy::io::joypad::{Button, Joypad};
 use crate::gameboy::io::link::Link;
@@ -28,7 +29,8 @@ pub struct Bus {
     timer: Timer,
     link: Link,
     trace: bool,
-    dma: DMA,
+    oam_dma: OamDma,
+    hdma: Hdma,
     accesses: Vec<MemAccess>,
     double_speed: bool,
     key0: IORegister<0x04>,
@@ -38,7 +40,7 @@ pub struct Bus {
 }
 
 #[rustfmt::skip]
-save_state_struct!(Bus {cartridge, ppu, wram, hram, cycle_count, interrupter, joypad, timer, link, trace, dma, double_speed, key0, key1, boot_enabled, model});
+save_state_struct!(Bus {cartridge, ppu, wram, hram, cycle_count, interrupter, joypad, timer, link, trace, oam_dma, hdma, double_speed, key0, key1, boot_enabled, model});
 
 impl Default for Bus {
     fn default() -> Self {
@@ -53,7 +55,8 @@ impl Default for Bus {
             timer: Timer::default(),
             link: Link::default(),
             trace: false,
-            dma: DMA::default(),
+            oam_dma: OamDma::default(),
+            hdma: Hdma::default(),
             accesses: Vec::new(),
             double_speed: false,
             key0: IORegister::default(),
@@ -66,7 +69,8 @@ impl Default for Bus {
 
 impl Bus {
     pub fn reset(&mut self, model: Model) {
-        self.dma.reset();
+        self.oam_dma.reset();
+        self.hdma.reset();
         self.ppu.reset(model);
         self.wram.reset();
         self.interrupter.reset();
@@ -104,7 +108,7 @@ impl Bus {
             WRAM_START..WRAM_END => self.wram.read(addr),
             ECHO_START..ECHO_END => self.read_internal(addr - 0x2000),
             OAM_START..OAM_END => self.ppu.read(addr),
-            DMA => self.dma.read(),
+            OAM_DMA => self.oam_dma.read(),
             PPU_START..PPU_END => self.ppu.read(addr),
             HRAM_START..HRAM_END => self.hram[(addr - HRAM_START) as usize],
             TIMER_START..TIMER_END => self.timer.read(addr),
@@ -120,7 +124,8 @@ impl Bus {
 
             SVBK => self.wram.read(addr),
             VBK => self.ppu.read(addr),
-            DMA_START..DMA_END | PAL_START..PAL_END => self.ppu.read(addr),
+            HDMA_START..HDMA_END => self.hdma.read(addr),
+            PAL_START..PAL_END => self.ppu.read(addr),
             KEY0 => self.key0.read(),
             KEY1 => self.key1.read(),
             _ => 0xFF,
@@ -129,12 +134,12 @@ impl Bus {
 
     pub fn read(&mut self, addr: u16) -> u8 {
         self.tick();
-        let value = if !(self.dma.has_transferred() && self.dma.conflict(addr)) {
+        let value = if !(self.oam_dma.has_transferred() && self.oam_dma.conflict(addr)) {
             self.read_internal(addr)
         } else if matches!(addr, OAM_START..OAM_END) {
             0xFF
         } else {
-            self.dma.current_byte()
+            self.oam_dma.current_byte()
         };
         if self.trace {
             self.accesses.push(MemAccess::read(addr, value));
@@ -152,7 +157,7 @@ impl Bus {
             WRAM_START..WRAM_END => self.wram.write(addr, value),
             ECHO_START..ECHO_END => self.write_internal(addr - 0x2000, value),
             OAM_START..OAM_END => self.ppu.write(addr, value),
-            DMA => self.dma.write(value),
+            OAM_DMA => self.oam_dma.write(value),
             STAT => self.ppu.write_stat(value, self.interrupter.ifl_mut()),
             PPU_START..PPU_END => self.ppu.write(addr, value),
             HRAM_START..HRAM_END => self.hram[(addr - HRAM_START) as usize] = value,
@@ -169,7 +174,8 @@ impl Bus {
 
             SVBK => self.wram.write(addr, value),
             VBK => self.ppu.write(addr, value),
-            DMA_START..DMA_END | PAL_START..PAL_END => self.ppu.write(addr, value),
+            HDMA_START..HDMA_END => self.hdma.write(addr, value, self.ppu.in_hblank()),
+            PAL_START..PAL_END => self.ppu.write(addr, value),
             KEY0 if self.boot_enabled => self.key0.write(value),
             KEY1 => self.key1.write(value),
             _ => (),
@@ -181,7 +187,7 @@ impl Bus {
         if self.trace {
             self.accesses.push(MemAccess::write(addr, value));
         }
-        if self.dma.has_transferred() && self.dma.conflict(addr) {
+        if self.oam_dma.has_transferred() && self.oam_dma.conflict(addr) {
             return;
         }
         self.write_internal(addr, value);
@@ -196,18 +202,34 @@ impl Bus {
     pub fn tick(&mut self) {
         let dots = if self.double_speed { 2 } else { 4 };
         self.ppu.ticks(dots, self.interrupter.ifl_mut());
+        if self.ppu.take_hblank_started() {
+            self.hdma.hblank_started();
+        }
         self.timer.tick(self.interrupter.ifl_mut());
         self.link.tick(self.interrupter.ifl_mut());
         self.cartridge.tick();
-        if let Some((src, dst)) = self.dma.tick() {
+        if let Some((src, dst)) = self.oam_dma.tick() {
             let byte = match src {
                 VRAM_START..VRAM_END => self.ppu.read_vram_dma(src),
                 _ => self.read_internal(src),
             };
             self.ppu.write_oam_dma(dst, byte);
-            self.dma.set_current_byte(byte);
+            self.oam_dma.set_current_byte(byte);
         }
         self.cycle_count += 1;
+    }
+
+    pub fn run_hdma(&mut self) {
+        if !self.ppu.in_hblank() {
+            self.hdma.skip_block();
+        }
+        while let Some((src, dst)) = self.hdma.next() {
+            let byte = if Hdma::readable(src) { self.read_internal(src) } else { 0xFF };
+            self.ppu.write_vram_dma(dst, byte);
+            if self.double_speed || dst & 1 == 1 {
+                self.tick();
+            }
+        }
     }
 
     pub fn toggle_double_speed(&mut self) {

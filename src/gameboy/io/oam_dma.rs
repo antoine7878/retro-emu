@@ -3,7 +3,7 @@ use crate::gameboy::memory::{io_reg::IORegister, map};
 use crate::save_state_struct;
 
 #[derive(Default)]
-pub struct DMA {
+pub struct OamDma {
     is_delay: bool,
     is_active: bool,
     has_transferred: bool,
@@ -13,9 +13,9 @@ pub struct DMA {
     dma: IORegister<0xFF>,
 }
 
-save_state_struct!(DMA { is_delay, is_active, has_transferred, current_byte, src, i, dma });
+save_state_struct!(OamDma { is_delay, is_active, has_transferred, current_byte, src, i, dma });
 
-impl DMA {
+impl OamDma {
     pub fn reset(&mut self) { *self = Self::default(); }
 
     pub fn read(&self) -> u8 { self.dma.read() }
