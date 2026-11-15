@@ -1,4 +1,3 @@
-use crate::gameboy::config::Model;
 use crate::gameboy::memory::io_reg::IOReg;
 use crate::gameboy::memory::{io_reg::IORegister, map};
 use crate::save_state_struct;
@@ -17,7 +16,7 @@ pub struct DMA {
 save_state_struct!(DMA { is_delay, is_active, has_transferred, current_byte, src, i, dma });
 
 impl DMA {
-    pub fn reset(&mut self, mode: Model) { self.dma.reset(mode); }
+    pub fn reset(&mut self) { *self = Self::default(); }
 
     pub fn read(&self) -> u8 { self.dma.read() }
 

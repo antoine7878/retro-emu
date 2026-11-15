@@ -3,7 +3,6 @@ use std::time::Duration;
 
 use crate::cli::ArgError;
 use crate::frontend::FRAME_RATE;
-use crate::gameboy::memory::map;
 use crate::{save_state_enum, save_state_struct};
 
 #[derive(Debug, Clone)]
@@ -48,78 +47,5 @@ impl TryFrom<String> for Model {
             "cgb" | "gbc" => Ok(Model::Cgb),
             _ => Err(ArgError::WrongValue('m', value)),
         }
-    }
-}
-
-impl Model {
-    fn to_int(&self) -> usize {
-        match self {
-            Self::Dmg => 0,
-            Self::Cgb => 1,
-        }
-    }
-
-    pub fn initial_value(&self, addr: u16) -> u8 {
-        let vals = match addr {
-            map::JOYPAD => [0xCF, 0xC7],
-            map::SB => [0x00, 0x00],
-            map::SC => [0x7E, 0x7F],
-            map::DIV => [0x18, 0xFF],
-            map::TIMA => [0x00, 0x00],
-            map::TMA => [0x00, 0x00],
-            map::TAC => [0xF8, 0xF8],
-            map::IF => [0xE1, 0xE1],
-            map::NR10 => [0x80, 0x80],
-            map::NR11 => [0xBF, 0xBF],
-            map::NR12 => [0xF3, 0xF3],
-            map::NR13 => [0xFF, 0xFF],
-            map::NR14 => [0xBF, 0xBF],
-            map::NR21 => [0x3F, 0x3F],
-            map::NR22 => [0x00, 0x00],
-            map::NR23 => [0xFF, 0xFF],
-            map::NR24 => [0xBF, 0xBF],
-            map::NR30 => [0x7F, 0x7F],
-            map::NR31 => [0xFF, 0xFF],
-            map::NR32 => [0x9F, 0x9F],
-            map::NR33 => [0xFF, 0xFF],
-            map::NR34 => [0xBF, 0xBF],
-            map::NR41 => [0xFF, 0xFF],
-            map::NR42 => [0x00, 0x00],
-            map::NR43 => [0x00, 0x00],
-            map::NR44 => [0xBF, 0xBF],
-            map::NR50 => [0x77, 0x77],
-            map::NR51 => [0xF3, 0xF3],
-            map::NR52 => [0xF1, 0xF1],
-            map::LCDC => [0x91, 0x91],
-            map::STAT => [0x81, 0xFF],
-            map::SCY => [0x00, 0x00],
-            map::SCX => [0x00, 0x00],
-            map::LY => [0x91, 0xFF],
-            map::LYC => [0x00, 0x00],
-            map::DMA => [0xFF, 0x00],
-            map::BGP => [0xFC, 0xFC],
-            map::OBP0 => [0xFF, 0xFF],
-            map::OBP1 => [0xFF, 0xFF],
-            map::WY => [0x00, 0x00],
-            map::WX => [0x00, 0x00],
-            map::KEY0 => [0x00, 0xFF],
-            map::KEY1 => [0x00, 0x7E],
-            map::VBK => [0x00, 0xFE],
-            map::BOOT_DISABLE => [0x00, 0xFF],
-            map::HDMA1 => [0x00, 0xFF],
-            map::HDMA2 => [0x00, 0xFF],
-            map::HDMA3 => [0x00, 0xFF],
-            map::HDMA4 => [0x00, 0xFF],
-            map::HDMA5 => [0x00, 0xFF],
-            map::RP => [0x00, 0x3E],
-            map::BCPS => [0x00, 0xFF],
-            map::BCPD => [0x00, 0xFF],
-            map::OCPS => [0x00, 0xFF],
-            map::OCPD => [0x00, 0xFF],
-            map::SVBK => [0x00, 0xF8],
-            map::IE => [0x00, 0x00],
-            _ => return 0xFF,
-        };
-        vals[self.to_int()]
     }
 }

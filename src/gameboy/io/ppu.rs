@@ -126,18 +126,6 @@ impl Ppu {
     pub fn reset(&mut self, mode: Model) {
         *self = Self::default();
         self.dmg = matches!(mode, Model::Dmg);
-        self.lcdc.reset(mode);
-        self.stat.reset(mode);
-        self.scy.reset(mode);
-        self.scx.reset(mode);
-        self.ly.reset(mode);
-        self.lyc.reset(mode);
-        self.bgp.reset(mode);
-        self.obp0.reset(mode);
-        self.obp1.reset(mode);
-        self.wy.reset(mode);
-        self.wx.reset(mode);
-        self.vbk.reset(mode);
     }
 
     pub fn read(&self, addr: u16) -> u8 {

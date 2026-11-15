@@ -1,6 +1,4 @@
-use crate::gameboy::config::Model;
 use crate::gameboy::memory::io_reg::IOReg;
-use crate::gameboy::memory::map;
 use crate::save_state_struct;
 
 const UNUSED_BITS: u8 = 0b1100_0000;
@@ -74,8 +72,8 @@ impl Default for Joypad {
 }
 
 impl Joypad {
-    pub fn reset(&mut self, mode: Model) {
-        self.select = mode.initial_value(map::JOYPAD) & SELECT_MASK;
+    pub fn reset(&mut self) {
+        self.select = 0;
         self.dpad = ALL_RELEASED;
         self.buttons = ALL_RELEASED;
     }

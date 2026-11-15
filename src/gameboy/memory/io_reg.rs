@@ -1,6 +1,5 @@
 use std::ops::AddAssign;
 
-use crate::gameboy::config::Model;
 use crate::gameboy::serializer::{SaveState, SerdeError, StateReader, StateWriter};
 
 #[derive(Default)]
@@ -18,7 +17,7 @@ impl<const ADDR: u16, const WRITE: u8, const READ: u8> SaveState for IORegister<
 }
 
 impl<const ADDR: u16, const WRITE: u8, const READ: u8> IORegister<ADDR, WRITE, READ> {
-    pub fn reset(&mut self, mode: Model) { self.raw = mode.initial_value(ADDR); }
+    pub fn reset(&mut self) { self.raw = 0 }
     pub fn set(&mut self, bit: u8) { self.raw |= 1 << bit }
     pub fn clear(&mut self, bit: u8) { self.raw &= !(1 << bit) }
     pub fn is_set(&self, bit: u8) -> bool { self.raw & (1 << bit) > 0 }

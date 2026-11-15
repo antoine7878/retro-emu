@@ -62,7 +62,7 @@ impl GameBoy {
 
     pub fn reset(&mut self) {
         self.bus.reset(self.config.model);
-        self.cpu.reset(self.config.model);
+        self.cpu.reset();
         self.sram_output.reset();
     }
 

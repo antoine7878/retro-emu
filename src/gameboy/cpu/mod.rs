@@ -12,7 +12,6 @@ use flag::{FlagSpec, Flags};
 use instruction::{AluOp, Cond, Instruction, R8, R16, R16Mem, R16Stk, ShiftOp};
 use registers::CpuRegisters;
 
-use super::config::Model;
 use super::memory::io_reg::IOReg;
 
 #[derive(Debug, PartialEq, Eq, Default)]
@@ -38,13 +37,7 @@ pub struct Cpu {
 save_state_struct!(Cpu { power_mode, ime, registers, delay_ie, halt_bug });
 
 impl Cpu {
-    pub fn reset(&mut self, mode: Model) {
-        self.registers.reset(mode);
-        self.ime = false;
-        self.delay_ie = false;
-        self.halt_bug = false;
-        self.power_mode = PowerMode::default();
-    }
+    pub fn reset(&mut self) { *self = Self::default(); }
 
     pub fn step(&mut self, bus: &mut Bus) {
         let opcode = self.fetch_opcode(bus);

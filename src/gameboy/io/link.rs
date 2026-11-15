@@ -24,8 +24,8 @@ impl Link {
     pub fn set_print(&mut self, on: bool) { self.print = on; }
 
     pub fn init_reg(&mut self, mode: Model) {
-        self.buffer.reset(mode);
-        self.ctrl.reset(mode);
+        self.buffer.reset();
+        self.ctrl.reset();
         self.cgb = matches!(mode, Model::Cgb);
         self.remaining = 0;
     }

@@ -11,6 +11,7 @@ use crate::gameboy::memory::io_reg::IORegister;
 use crate::gameboy::memory::map;
 use crate::gameboy::memory::wram::WRam;
 use crate::gameboy::monitor::MemAccess;
+use crate::gameboy::roms;
 use crate::save_state_struct;
 
 use super::map::{KEY1, OAM_END, OAM_START, VRAM_END, VRAM_START};
@@ -30,10 +31,12 @@ pub struct Bus {
     accesses: Vec<MemAccess>,
     double_speed: bool,
     key1: IORegister<KEY1, 0x81>,
+    boot_rom: &'static [u8],
+    boot_enabled: bool,
 }
 
 #[rustfmt::skip]
-save_state_struct!(Bus {cartridge, ppu, wram, hram, cycle_count, interrupter, joypad, timer, link, trace, dma, double_speed, key1});
+save_state_struct!(Bus {cartridge, ppu, wram, hram, cycle_count, interrupter, joypad, timer, link, trace, dma, double_speed, key1, boot_enabled});
 
 impl Default for Bus {
     fn default() -> Self {
@@ -52,19 +55,27 @@ impl Default for Bus {
             accesses: Vec::new(),
             double_speed: false,
             key1: IORegister::<KEY1, 0x81>::default(),
+            boot_rom: &[],
+            boot_enabled: false,
         }
     }
 }
 
 impl Bus {
-    pub fn reset(&mut self, mode: Model) {
-        self.dma.reset(mode);
-        self.ppu.reset(mode);
-        self.wram.reset(mode);
-        self.interrupter.reset(mode);
-        self.joypad.reset(mode);
-        self.timer.reset(mode);
-        self.link.init_reg(mode);
+    pub fn reset(&mut self, model: Model) {
+        self.dma.reset();
+        self.ppu.reset(model);
+        self.wram.reset();
+        self.interrupter.reset();
+        self.joypad.reset();
+        self.timer.reset();
+        self.link.init_reg(model);
+        self.key1.reset();
+        self.boot_rom = match model {
+            Model::Dmg => roms::DMG_BOOT,
+            Model::Cgb => roms::CGB_BOOT,
+        };
+        self.boot_enabled = true;
         self.hram = [0; map::HRAM_SIZE];
         self.cycle_count = 0;
         self.accesses.clear();
@@ -76,9 +87,16 @@ impl Bus {
         self.cartridge = Cartridge::try_new(model, rom).unwrap_or_default();
     }
 
+    fn read_boot_rom(&self, addr: u16) -> Option<u8> {
+        if !self.boot_enabled || matches!(addr, map::BOOT_HEADER_START..map::BOOT_HEADER_END) {
+            return None;
+        }
+        self.boot_rom.get(addr as usize).copied()
+    }
+
     pub fn read_internal(&self, addr: u16) -> u8 {
         match addr {
-            map::ROM_START..map::ROM_END => self.cartridge.read(addr),
+            map::ROM_START..map::ROM_END => self.read_boot_rom(addr).unwrap_or_else(|| self.cartridge.read(addr)),
             map::VRAM_START..map::VRAM_END => self.ppu.read(addr),
             map::SRAM_START..map::SRAM_END => self.cartridge.read(addr),
             map::WRAM_START..map::WRAM_END | map::SVBK => self.wram.read(addr),
@@ -145,7 +163,7 @@ impl Bus {
             map::WAVE_START..map::WAVE_END => (),
             // TODO: Keypad
             map::KEY0 | map::KEY1 => (),
-            // TODO: boot
+            map::BOOT_DISABLE if value != 0 => self.boot_enabled = false,
             map::BOOT_DISABLE => (),
 
             map::IE | map::IF => self.interrupter.write(addr, value),
