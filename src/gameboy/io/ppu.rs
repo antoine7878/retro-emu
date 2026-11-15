@@ -26,8 +26,9 @@ const PALETTE: [[u8; 3]; 4] = [[0x9B, 0xBC, 0x0F], [0x8B, 0xAC, 0x0F], [0x30, 0x
 
 const fn color_index(lo: u8, hi: u8, bit: u8) -> u8 { (((hi >> bit) & 1) << 1) | ((lo >> bit) & 1) }
 
-#[derive(PartialEq, Eq, Clone, Copy)]
+#[derive(PartialEq, Eq, Clone, Copy, Default)]
 pub enum PpuMode {
+    #[default]
     HBlank = 0,
     VBlank = 1,
     OamScan = 2,
@@ -52,14 +53,14 @@ enum TileKind {
     BgWin,
 }
 
+#[derive(Default)]
 pub struct Ppu {
-    pixels: [[[u8; 3]; WIDTH]; HEIGHT],
+    pixels: Vec<u8>,
     redraw: bool,
     dot: u16,
 
     stat_line: bool,
     mode: PpuMode,
-    // dmg: bool,
     model: Model,
 
     window_line: u16,
@@ -69,11 +70,11 @@ pub struct Ppu {
     skip_frame: bool,
     hblank_started: bool,
 
-    selected_objects: [[u8; 4]; 10],
+    selected_objects: Vec<u8>,
     selected_objects_len: usize,
 
-    vram: [[u8; map::VRAM_SIZE]; 2],
-    oam: [u8; map::OAM_SIZE],
+    vram: Vec<u8>,
+    oam: Vec<u8>,
     lcdc: IORegister<0xFF>,
     stat: IORegister<0x78>,
     scy: IORegister<0xFF>,
@@ -91,44 +92,16 @@ pub struct Ppu {
 #[rustfmt::skip]
 save_state_struct!(Ppu {pixels, redraw, dot,  mode, model, window_line, first_line, skip_frame, hblank_started, selected_objects, selected_objects_len, vram, oam, lcdc, stat, scy, scx, ly, lyc, bgp, obp0, obp1, wy, wx, vbk, stat_line, wy_triggered});
 
-impl Default for Ppu {
-    fn default() -> Self {
-        Self {
-            pixels: [[[0; 3]; WIDTH]; HEIGHT],
-            dot: 0,
-            vram: [[0; map::VRAM_SIZE]; 2],
-            oam: [0; map::OAM_SIZE],
-            selected_objects: [[0; 4]; 10],
-            selected_objects_len: 0,
-            stat_line: false,
-            redraw: false,
-            window_line: 0,
-            wy_triggered: false,
-            first_line: false,
-            skip_frame: false,
-            hblank_started: false,
-            lcdc: IORegister::default(),
-            stat: IORegister::default(),
-            scy: IORegister::default(),
-            scx: IORegister::default(),
-            ly: IORegister::default(),
-            lyc: IORegister::default(),
-            bgp: IORegister::default(),
-            obp0: IORegister::default(),
-            obp1: IORegister::default(),
-            wy: IORegister::default(),
-            wx: IORegister::default(),
-            vbk: IORegister::default(),
-            mode: PpuMode::HBlank,
-            model: Model::Dmg,
-        }
-    }
-}
-
 impl Ppu {
-    pub fn reset(&mut self, mode: Model) {
-        *self = Self::default();
-        self.model = mode;
+    pub fn reset(&mut self, model: Model) {
+        *self = Self {
+            model,
+            pixels: vec![0; WIDTH * HEIGHT * 3],
+            vram: vec![0; map::VRAM_SIZE * 2],
+            oam: vec![0; map::OAM_SIZE],
+            selected_objects: vec![0; 40],
+            ..Self::default()
+        };
     }
 
     pub fn read(&self, addr: u16) -> u8 {
@@ -225,7 +198,9 @@ impl Ppu {
         self.wy_triggered = false;
         self.first_line = false;
         self.skip_frame = false;
-        self.pixels = [[PALETTE[0]; WIDTH]; HEIGHT];
+        for p in self.pixels.as_chunks_mut::<3>().0 {
+            *p = PALETTE[0];
+        }
         self.redraw = true;
     }
 
@@ -252,15 +227,17 @@ impl Ppu {
         }
     }
 
-    pub fn read_vram_raw(&self, addr: u16) -> u8 { self.vram[0][(addr - map::VRAM_START) as usize] }
+    pub fn read_vram_raw(&self, addr: u16) -> u8 { self.vram[(addr - map::VRAM_START) as usize] }
 
-    pub fn read_vram_dma(&self, addr: u16) -> u8 { self.vram[self.vram_bank()][(addr - map::VRAM_START) as usize] }
+    pub fn read_vram_dma(&self, addr: u16) -> u8 {
+        self.vram[self.vram_bank() * map::VRAM_SIZE + (addr - map::VRAM_START) as usize]
+    }
 
     pub fn write_oam_dma(&mut self, i: u16, value: u8) { self.oam[i as usize] = value; }
 
     pub fn write_vram_dma(&mut self, addr: u16, value: u8) {
         let bank = self.vram_bank();
-        self.vram[bank][(addr - map::VRAM_START) as usize] = value;
+        self.vram[bank * map::VRAM_SIZE + (addr - map::VRAM_START) as usize] = value;
     }
 
     pub fn in_hblank(&self) -> bool { self.mode == PpuMode::HBlank }
@@ -275,7 +252,7 @@ impl Ppu {
         let unsigned = kind == TileKind::Obj || self.lcdc.is_set(BG_WIN_TILE_DATA);
         let tile = if unsigned { id as usize * 16 } else { (0x1000 + (id as i8 as i32) * 16) as usize };
         let start = tile + row as usize * 2;
-        (self.vram[0][start], self.vram[0][start + 1])
+        (self.vram[start], self.vram[start + 1])
     }
 
     fn set_mode(&mut self, mode: PpuMode, ifl: &mut InterruptFlag) {
@@ -333,14 +310,21 @@ impl Ppu {
         for o in self.oam.as_chunks::<4>().0 {
             let y = o[0] as i16;
             if y <= line && line < y + height {
-                self.selected_objects[self.selected_objects_len] = *o;
+                let i = self.selected_objects_len * 4;
+                self.selected_objects[i..i + 4].copy_from_slice(o);
                 self.selected_objects_len += 1;
                 if self.selected_objects_len == 10 {
                     break;
                 }
             }
         }
-        self.selected_objects[..self.selected_objects_len].sort_by_key(|o| o[1]);
+        for i in 1..self.selected_objects_len {
+            let mut j = i;
+            while j > 0 && self.selected_objects[(j - 1) * 4 + 1] > self.selected_objects[j * 4 + 1] {
+                self.selected_objects[(j - 1) * 4..(j + 1) * 4].rotate_left(4);
+                j -= 1;
+            }
+        }
     }
 
     fn render_scanline(&mut self) {
@@ -351,7 +335,8 @@ impl Ppu {
         let ly = self.ly.read() as usize;
         for (x, v) in line_buffer.iter().enumerate() {
             let shade = if v & CLAIMED != 0 { v & 0b11 } else { (bgp >> ((v & 0b11) * 2)) & 0b11 };
-            self.pixels[ly][x] = PALETTE[shade as usize];
+            let i = (ly * WIDTH + x) * 3;
+            self.pixels[i..i + 3].copy_from_slice(&PALETTE[shade as usize]);
         }
     }
 
@@ -410,7 +395,7 @@ impl Ppu {
         let height = if self.lcdc.is_set(OBJ_SIZE) { 16 } else { 8 };
         let ly = self.ly.read();
 
-        for &[y, x, tile_id, attr] in &self.selected_objects[..self.selected_objects_len] {
+        for &[y, x, tile_id, attr] in self.selected_objects[..self.selected_objects_len * 4].as_chunks::<4>().0 {
             let row = ly + 16 - y;
             let row = if attr & OBJ_FLIP_Y != 0 { height - 1 - row } else { row };
             let id = if height == 16 { (tile_id & 0xFE) | (row >> 3) } else { tile_id };
@@ -464,5 +449,5 @@ impl Ppu {
     }
 
     pub fn take_redraw(&mut self) -> bool { std::mem::take(&mut self.redraw) }
-    pub const fn get_pixels(&self) -> &[u8] { self.pixels.as_flattened().as_flattened() }
+    pub fn get_pixels(&self) -> &[u8] { &self.pixels }
 }

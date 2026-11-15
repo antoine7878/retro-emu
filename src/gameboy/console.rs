@@ -97,7 +97,7 @@ impl GameBoy {
         None
     }
 
-    pub const fn pixels(&self) -> &[u8] { self.bus.get_pixels() }
+    pub fn pixels(&self) -> &[u8] { self.bus.get_pixels() }
 
     pub fn take_redraw(&mut self) -> bool { self.bus.take_redraw() }
 

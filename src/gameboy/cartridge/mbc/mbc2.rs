@@ -2,11 +2,11 @@ use crate::gameboy::cartridge::header::CartridgeHeader;
 use crate::gameboy::memory::map;
 use crate::save_state_struct;
 
-use super::MBC;
+use super::Mbc;
 
 pub struct Mbc2 {
     rom: Vec<u8>,
-    ram: [u8; RAM_SIZE],
+    ram: Vec<u8>,
     selected_rom_bank: usize,
     rom_bank_count: usize,
     ram_enabled: bool,
@@ -16,13 +16,13 @@ save_state_struct!(Mbc2 { ram, selected_rom_bank, rom_bank_count, ram_enabled })
 
 const RAM_SIZE: usize = 512;
 
-impl MBC for Mbc2 {
+impl Mbc for Mbc2 {
     fn try_from_header(rom: Vec<u8>, header: &CartridgeHeader) -> Option<Self> {
         let rom_bank_count = header.rom_bank_count as usize;
         let rom_size = rom_bank_count * map::ROM_BANK_SIZE;
         let mut rom = rom;
-        rom.resize(rom_size, 0xFF);
-        let ram = [0; RAM_SIZE];
+        rom.resize(rom_size, 0);
+        let ram = vec![0; RAM_SIZE];
         let m = Self { rom, ram, rom_bank_count, selected_rom_bank: 1, ram_enabled: false };
         Some(m)
     }
@@ -48,11 +48,11 @@ impl MBC for Mbc2 {
     }
 
     fn rom(&self) -> Vec<u8> { self.rom.clone() }
-    fn ram(&self) -> Vec<u8> { self.ram.to_vec() }
+    fn ram(&self) -> Vec<u8> { self.ram.clone() }
 
     fn load_ram(&mut self, ram: Vec<u8>) {
         let mut ram = ram;
-        ram.resize(RAM_SIZE, 0xFF);
-        self.ram.copy_from_slice(&ram);
+        ram.resize(RAM_SIZE, 0);
+        self.ram = ram;
     }
 }

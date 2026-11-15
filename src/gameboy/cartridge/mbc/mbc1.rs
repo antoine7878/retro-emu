@@ -3,7 +3,7 @@ use crate::gameboy::memory::io_reg::{IOReg, IORegister};
 use crate::gameboy::memory::map;
 use crate::save_state_struct;
 
-use super::MBC;
+use super::Mbc;
 
 #[derive(Default)]
 pub struct Mbc1 {
@@ -21,12 +21,12 @@ pub struct Mbc1 {
 #[rustfmt::skip]
 save_state_struct!(Mbc1 { ram, rom_bank_count, ram_bank_count, ram_size, bank1, bank2, ram_enabled, banking_mode });
 
-impl MBC for Mbc1 {
+impl Mbc for Mbc1 {
     fn try_from_header(rom: Vec<u8>, header: &CartridgeHeader) -> Option<Self> {
         let rom_bank_count = header.rom_bank_count as usize;
         let rom_size = rom_bank_count * map::ROM_BANK_SIZE;
         let mut rom = rom;
-        rom.resize(rom_size, 0xFF);
+        rom.resize(rom_size, 0);
         let ram_bank_count = header.ram_bank_count as usize;
         let ram_size = ram_bank_count * map::SRAM_BANK_SIZE;
         let ram = vec![0; ram_size];
@@ -62,7 +62,7 @@ impl MBC for Mbc1 {
 
     fn load_ram(&mut self, ram: Vec<u8>) {
         let mut ram = ram;
-        ram.resize(self.ram_size, 0xFF);
+        ram.resize(self.ram_size, 0);
         self.ram = ram;
     }
 }

@@ -4,7 +4,7 @@ mod mbc;
 use std::fs;
 
 pub use header::CartridgeHeader;
-use mbc::{MBC, Mbcs};
+use mbc::{Mbc, Mbcs};
 
 use crate::gameboy::roms;
 use crate::gameboy::serializer::{SaveState, SerdeError, StateReader, StateWriter};

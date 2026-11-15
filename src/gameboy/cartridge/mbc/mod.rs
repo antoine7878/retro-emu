@@ -14,7 +14,7 @@ use crate::gameboy::serializer::{SaveState, SerdeError, StateReader, StateWriter
 
 use super::header::{CartridgeHeader, MbcKind};
 
-pub trait MBC: Sized {
+pub trait Mbc: Sized {
     fn try_from_header(rom: Vec<u8>, header: &CartridgeHeader) -> Option<Self>;
     fn read(&self, addr: u16) -> u8;
     fn write(&mut self, addr: u16, value: u8);
@@ -54,7 +54,7 @@ impl Default for Mbcs {
     fn default() -> Self { Mbcs::RomOnly(RomOnly::default()) }
 }
 
-impl MBC for Mbcs {
+impl Mbc for Mbcs {
     fn try_from_header(rom: Vec<u8>, header: &CartridgeHeader) -> Option<Self> {
         match header.mbc_kind {
             MbcKind::None => RomOnly::try_from_header(rom, header).map(Mbcs::RomOnly),

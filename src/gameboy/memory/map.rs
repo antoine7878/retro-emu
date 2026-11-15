@@ -41,7 +41,7 @@ pub const PPU_START: u16 = LCDC;
 pub const PPU_END: u16 = WX + 1;
 pub const HDMA_START: u16 = HDMA1;
 pub const HDMA_END: u16 = HDMA5 + 1;
-pub const PAL_START: u16 = BCPS;
+pub const PAL_START: u16 = BGPI;
 pub const PAL_END: u16 = OPRI + 1;
 
 // ----- Joypad --------------------
@@ -111,13 +111,14 @@ pub const HDMA2: u16 = 0xFF52;
 pub const HDMA3: u16 = 0xFF53;
 pub const HDMA4: u16 = 0xFF54;
 pub const HDMA5: u16 = 0xFF55;
-pub const BCPS: u16 = 0xFF68;
-pub const BCPD: u16 = 0xFF69;
-pub const OCPS: u16 = 0xFF6A;
-pub const OCPD: u16 = 0xFF6B;
-pub const OPRI: u16 = 0xFF6C;
 
 // ----- CGB System --------------------
+
+pub const BGPI: u16 = 0xFF68;
+pub const BGPD: u16 = 0xFF69;
+pub const OBPI: u16 = 0xFF6A;
+pub const OBPD: u16 = 0xFF6B;
+pub const OPRI: u16 = 0xFF6C;
 
 pub const KEY0: u16 = 0xFF4C;
 pub const KEY1: u16 = 0xFF4D;
@@ -131,7 +132,7 @@ pub fn memory_range(name: &str) -> Option<(u16, u16)> {
     }
     let mut addrs = (0..=u16::MAX).filter(|&addr| memory_location(addr).eq_ignore_ascii_case(name));
     let start = addrs.next()?;
-    Some((start, addrs.last().unwrap_or(start)))
+    Some((start, addrs.next_back().unwrap_or(start)))
 }
 
 pub fn memory_location(addr: u16) -> &'static str {
@@ -195,16 +196,18 @@ pub fn memory_location(addr: u16) -> &'static str {
         HDMA4 => "HDMA4",
         HDMA5 => "HDMA5",
         RP => "RP",
-        BCPS => "BCPS",
-        BCPD => "BCPD",
-        OCPS => "OCPS",
-        OCPD => "OCPD",
+
+        BGPI => "BGPI",
+        BGPD => "BGPD",
+        OBPI => "OBPI",
+        OBPD => "OBPD",
+
         OPRI => "OPRI",
         SVBK => "SVBK",
         PCM12 => "PCM12",
         PCM34 => "PCM34",
         HRAM_START..HRAM_END => "HRAM",
         IE => "IE",
-        _ => "IO",
+        _ => "IO ?",
     }
 }

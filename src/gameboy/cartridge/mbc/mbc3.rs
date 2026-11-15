@@ -4,7 +4,7 @@ use crate::gameboy::cartridge::header::CartridgeHeader;
 use crate::gameboy::memory::map;
 use crate::save_state_struct;
 
-use super::MBC;
+use super::Mbc;
 
 pub struct Mbc3 {
     rom: Vec<u8>,
@@ -29,12 +29,12 @@ save_state_struct!(Mbc3 { ram, rom_bank_count, ram_bank_count, ram_size, selecte
 
 const TIME_MASKS: [u8; 5] = [0x3F, 0x3F, 0x1F, 0xFF, 0xC1];
 
-impl MBC for Mbc3 {
+impl Mbc for Mbc3 {
     fn try_from_header(rom: Vec<u8>, header: &CartridgeHeader) -> Option<Self> {
         let rom_bank_count = header.rom_bank_count as usize;
         let rom_size = rom_bank_count * map::ROM_BANK_SIZE;
         let mut rom = rom;
-        rom.resize(rom_size, 0xFF);
+        rom.resize(rom_size, 0);
         let ram_bank_count = header.ram_bank_count as usize;
         let ram_size = ram_bank_count * map::SRAM_BANK_SIZE;
         Some(Self {
@@ -114,7 +114,7 @@ impl MBC for Mbc3 {
 
     fn load_ram(&mut self, ram: Vec<u8>) {
         let mut ram = ram;
-        ram.resize(self.ram_size + 8 + 5, 0xFF);
+        ram.resize(self.ram_size + 8 + 5, 0);
         let time_of_save = u64::from_be_bytes(ram[..8].try_into().unwrap_or_default());
         let saved_rtc = self.seconds_of_reg(&ram[8..13]);
 
@@ -181,7 +181,7 @@ impl Mbc3 {
     fn selected_rom_bank(&self, addr: u16) -> usize {
         match addr {
             map::ROM_START..map::ROM_HALF => 0,
-            map::ROM_HALF..map::ROM_END => self.selected_rom_bank as usize & self.rom_bank_count.saturating_sub(1),
+            map::ROM_HALF..map::ROM_END => self.selected_rom_bank & self.rom_bank_count.saturating_sub(1),
             _ => unreachable!(),
         }
     }
@@ -191,7 +191,7 @@ impl Mbc3 {
     fn seconds_of_reg(&self, time: &[u8]) -> u64 {
         let [sec, min, hour, day, flags] = *time else { return 0 };
         let day = ((flags as u64 & 0x01) << 8) | (day as u64);
-        return (sec as u64) + (min as u64 * 60) + (hour as u64 * 3600) + (day * 86400);
+        (sec as u64) + (min as u64 * 60) + (hour as u64 * 3600) + (day * 86400)
     }
 
     fn init_reg_with(&mut self, seconds: u64, f: u8) {

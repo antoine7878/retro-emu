@@ -16,13 +16,14 @@ use crate::gameboy::memory::wram::WRam;
 use crate::gameboy::monitor::MemAccess;
 use crate::save_state_struct;
 
-use super::map::{OAM_END, OAM_START, VRAM_END, VRAM_START};
+use super::map::{HRAM_SIZE, OAM_END, OAM_START, VRAM_END, VRAM_START};
 
+#[derive(Default)]
 pub struct Bus {
     cartridge: Cartridge,
     ppu: Ppu,
     wram: WRam,
-    hram: [u8; map::HRAM_SIZE],
+    hram: Vec<u8>,
     cycle_count: u64,
     interrupter: Interrupter,
     joypad: Joypad,
@@ -42,31 +43,6 @@ pub struct Bus {
 #[rustfmt::skip]
 save_state_struct!(Bus {cartridge, ppu, wram, hram, cycle_count, interrupter, joypad, timer, link, trace, oam_dma, hdma, double_speed, key0, key1, boot_enabled, model});
 
-impl Default for Bus {
-    fn default() -> Self {
-        Self {
-            cartridge: Cartridge::default(),
-            ppu: Ppu::default(),
-            wram: WRam::default(),
-            hram: [0; map::HRAM_SIZE],
-            cycle_count: 0,
-            interrupter: Interrupter::default(),
-            joypad: Joypad::default(),
-            timer: Timer::default(),
-            link: Link::default(),
-            trace: false,
-            oam_dma: OamDma::default(),
-            hdma: Hdma::default(),
-            accesses: Vec::new(),
-            double_speed: false,
-            key0: IORegister::default(),
-            key1: IORegister::default(),
-            boot_enabled: false,
-            model: Model::Dmg,
-        }
-    }
-}
-
 impl Bus {
     pub fn reset(&mut self, model: Model) {
         self.oam_dma.reset();
@@ -78,8 +54,9 @@ impl Bus {
         self.timer.reset();
         self.link.reset(self.cgb_mode());
         self.boot_enabled = true;
-        self.hram = [0; map::HRAM_SIZE];
         self.cycle_count = 0;
+        self.hram.clear();
+        self.hram.resize(HRAM_SIZE, 0);
         self.accesses.clear();
         self.double_speed = false;
         self.model = model;
@@ -125,6 +102,7 @@ impl Bus {
             SVBK => self.wram.read(addr),
             VBK => self.ppu.read(addr),
             HDMA_START..HDMA_END => self.hdma.read(addr),
+
             PAL_START..PAL_END => self.ppu.read(addr),
             KEY0 => self.key0.read(),
             KEY1 => self.key1.read(),
@@ -239,7 +217,7 @@ impl Bus {
         self.double_speed = !self.double_speed;
         self.key1.clear(0);
         self.key1.write_bit(7, self.double_speed);
-        return true;
+        true
     }
 
     pub fn press(&mut self, button: Button) {
@@ -259,7 +237,7 @@ impl Bus {
     pub const fn get_cycle_count(&self) -> u64 { self.cycle_count }
     pub const fn cartridge(&self) -> &Cartridge { &self.cartridge }
     pub const fn set_trace(&mut self, on: bool) { self.trace = on; }
-    pub const fn get_pixels(&self) -> &[u8] { self.ppu.get_pixels() }
+    pub fn get_pixels(&self) -> &[u8] { self.ppu.get_pixels() }
     pub const fn joypad_mut(&mut self) -> &mut Joypad { &mut self.joypad }
     pub const fn cartridge_mut(&mut self) -> &mut Cartridge { &mut self.cartridge }
 }
