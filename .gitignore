@@ -13,3 +13,5 @@ todo*
 *.sym
 
 roms/build/
+roms/*.gb
+roms/*.bin
