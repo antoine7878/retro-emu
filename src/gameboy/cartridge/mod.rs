@@ -9,6 +9,9 @@ use mbc::{MBC, Mbcs};
 use crate::gameboy::serializer::{SaveState, SerdeError, StateReader, StateWriter};
 use crate::save_state_struct;
 
+use super::Model;
+use super::config::Mode;
+
 pub const MAGIC_SAVE: &[u8; 7] = b"GB_SAVE";
 const SAVE_VERSION: u16 = 1;
 
@@ -23,13 +26,13 @@ save_state_struct!(Cartridge { mbc, header, file_name });
 impl Default for Cartridge {
     fn default() -> Self {
         let bad_rom = include_bytes!("./../../../rscs/error_roms/bad_game.gb").to_vec();
-        Cartridge::try_new(bad_rom).unwrap()
+        Cartridge::try_new(Model::Dmg, bad_rom).unwrap()
     }
 }
 
 impl Cartridge {
-    pub fn try_new(rom: Vec<u8>) -> Option<Self> {
-        let header = CartridgeHeader::try_new(&rom)?;
+    pub fn try_new(model: Model, rom: Vec<u8>) -> Option<Self> {
+        let header = CartridgeHeader::try_new(model, &rom)?;
         let mbc = Mbcs::try_from_header(rom, &header)?;
         let file_name = format!("{}.save", header.rom_name);
         let mut cart = Self { header, mbc, file_name };
@@ -100,4 +103,5 @@ impl Cartridge {
     pub fn rom(&self) -> Vec<u8> { self.mbc.rom() }
     pub fn take_rumble(&mut self) -> f32 { self.mbc.take_rumble() }
     pub fn tick(&mut self) { self.mbc.tick(); }
+    pub fn mode(&self) -> Mode { self.header.mode() }
 }

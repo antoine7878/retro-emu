@@ -1,6 +1,6 @@
 use std::io::Write;
 
-use crate::gameboy::config::ConsoleType;
+use crate::gameboy::config::Model;
 use crate::gameboy::io::interrupt::InterruptFlag;
 use crate::gameboy::memory::io_reg::{IOReg, IORegister};
 use crate::gameboy::memory::map;
@@ -23,10 +23,10 @@ save_state_struct!(Link { buffer, ctrl, print, cgb, remaining });
 impl Link {
     pub fn set_print(&mut self, on: bool) { self.print = on; }
 
-    pub fn init_reg(&mut self, mode: &ConsoleType) {
+    pub fn init_reg(&mut self, mode: Model) {
         self.buffer.reset(mode);
         self.ctrl.reset(mode);
-        self.cgb = matches!(mode, ConsoleType::Cgb);
+        self.cgb = matches!(mode, Model::Cgb);
         self.remaining = 0;
     }
 

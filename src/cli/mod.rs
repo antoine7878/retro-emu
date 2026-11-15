@@ -5,7 +5,10 @@ use std::process::exit;
 use std::str::Chars;
 use std::vec;
 
-use parser::{ArgError, ArgParser, argv};
+pub use parser::ArgError;
+use parser::{ArgParser, argv};
+
+use crate::gameboy::Model;
 
 #[derive(Debug)]
 pub struct Args {
@@ -13,6 +16,7 @@ pub struct Args {
     pub debug: bool,
     pub debug_init_file: Option<String>,
     pub serial_print: bool,
+    pub model: Model,
     argv: vec::IntoIter<String>,
 }
 
@@ -29,6 +33,7 @@ impl ArgParser for Args {
             's' => self.serial_print = true,
             'f' => self.debug_init_file = self.value(it, 'f')?,
             'h' => Self::help(),
+            'm' => self.model = self.value(it, 'm')?,
             c => return Err(ArgError::UnknownOption(c)),
         }
         Ok(())
@@ -37,7 +42,14 @@ impl ArgParser for Args {
 
 impl Default for Args {
     fn default() -> Self {
-        Self { infiles: Vec::default(), debug: false, argv: argv(), debug_init_file: None, serial_print: false }
+        Self {
+            infiles: Vec::default(),
+            debug: false,
+            argv: argv(),
+            debug_init_file: None,
+            serial_print: false,
+            model: Model::Dmg,
+        }
     }
 }
 

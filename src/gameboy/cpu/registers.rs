@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::gameboy::config::ConsoleType;
+use crate::gameboy::config::Model;
 use crate::gameboy::cpu::flag::{FlagSpec, Flags};
 use crate::gameboy::cpu::instruction::{R8, R16, R16Stk};
 use crate::save_state_struct;
@@ -26,10 +26,10 @@ pub struct CpuRegisters {
 save_state_struct!(CpuRegisters { a, f, b, c, d, e, h, l, sp, pc });
 
 impl CpuRegisters {
-    pub fn reset(&mut self, mode: &ConsoleType) {
+    pub fn reset(&mut self, mode: Model) {
         let (af, bc, de, hl) = match mode {
-            ConsoleType::Dmg => (0x01B0, 0x0013, 0x00D8, 0x014D),
-            ConsoleType::Cgb => (0x1180, 0x0000, 0xFF56, 0x000D),
+            Model::Dmg => (0x01B0, 0x0013, 0x00D8, 0x014D),
+            Model::Cgb => (0x1180, 0x0000, 0xFF56, 0x000D),
         };
         self.set_af(af);
         self.set_bc(bc);

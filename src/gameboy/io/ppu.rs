@@ -1,4 +1,4 @@
-use crate::gameboy::config::ConsoleType;
+use crate::gameboy::config::Model;
 use crate::gameboy::io::interrupt::InterruptFlag;
 use crate::gameboy::memory::io_reg::{IOReg, IORegister};
 use crate::gameboy::memory::map;
@@ -87,7 +87,7 @@ pub struct Ppu {
 }
 
 #[rustfmt::skip]
-save_state_struct!(Ppu {pixels, redraw, dot,  mode, dmg, window_line, first_line, skip_frame, selected_objects, selected_objects_len, vram, oam, lcdc, stat, scy, scx, ly, lyc, bgp, obp0, obp1, wy, wx, vbk});
+save_state_struct!(Ppu {pixels, redraw, dot,  mode, dmg, window_line, first_line, skip_frame, selected_objects, selected_objects_len, vram, oam, lcdc, stat, scy, scx, ly, lyc, bgp, obp0, obp1, wy, wx, vbk, stat_line, wy_triggered});
 
 impl Default for Ppu {
     fn default() -> Self {
@@ -123,9 +123,9 @@ impl Default for Ppu {
 }
 
 impl Ppu {
-    pub fn reset(&mut self, mode: &ConsoleType) {
+    pub fn reset(&mut self, mode: Model) {
         *self = Self::default();
-        self.dmg = matches!(mode, ConsoleType::Dmg);
+        self.dmg = matches!(mode, Model::Dmg);
         self.lcdc.reset(mode);
         self.stat.reset(mode);
         self.scy.reset(mode);

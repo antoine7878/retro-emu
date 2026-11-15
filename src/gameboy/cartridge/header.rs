@@ -1,6 +1,8 @@
 use std::collections::HashSet;
 
-use crate::{gameboy::config::CGMode, save_state_enum, save_state_struct};
+use crate::gameboy::Model;
+use crate::gameboy::config::Mode;
+use crate::{save_state_enum, save_state_struct};
 
 const ROM_SIZE_FLAG: usize = 0x0148;
 const RAM_SIZE_FLAG: usize = 0x149;
@@ -48,20 +50,24 @@ pub struct CartridgeHeader {
     pub rom_bank_count: u16,
     pub ram_bank_count: u8,
     pub rom_name: String,
-    pub _cgb_mode: CGMode,
+    pub mode: Mode,
     pub mbc_kind: MbcKind,
     pub addons: HashSet<Addon>,
     pub global_checksum: u16,
 }
 
-save_state_struct!(CartridgeHeader { rom_bank_count, rom_bank_count, rom_name, _cgb_mode, mbc_kind, addons });
+#[rustfmt::skip]
+save_state_struct!(CartridgeHeader { rom_bank_count, ram_bank_count, rom_name, mode, mbc_kind, addons, global_checksum });
 
 impl CartridgeHeader {
-    pub fn try_new(rom: &[u8]) -> Option<Self> {
+    pub fn try_new(model: Model, rom: &[u8]) -> Option<Self> {
         let rom_bank_count = Self::rom_bank_count(rom)?;
         let ram_bank_count = Self::ram_bank_count(rom)?;
-        let rom_name = Self::rom_name(rom)?;
-        let cgb_mode = Self::mode(rom)?;
+        let rom_name = Self::parse_rom_name(rom)?;
+        let cgb_mode = Self::parse_mode(rom)?;
+        if cgb_mode == Mode::Cgb && model == Model::Dmg {
+            return None;
+        }
         let (mbc_kind, addons) = Self::cartridge_type(rom)?;
         let global_checksum = u16::from_be_bytes([*rom.get(GLOBAL_CHECKSUM)?, *rom.get(GLOBAL_CHECKSUM + 1)?]);
         let ram_bank_count = if ram_bank_count == 0 && addons.contains(&Addon::Ram) { 1 } else { ram_bank_count };
@@ -69,7 +75,7 @@ impl CartridgeHeader {
             rom_bank_count,
             ram_bank_count,
             rom_name,
-            _cgb_mode: cgb_mode,
+            mode: cgb_mode,
             mbc_kind,
             addons,
             global_checksum,
@@ -79,19 +85,20 @@ impl CartridgeHeader {
     pub fn is_rom(data: &[u8]) -> bool {
         let Some(bytes) = data.get(TITLE_START..HEADER_CHECKSUM) else { return false };
         let checksum = bytes.iter().fold(0u8, |x, &b| x.wrapping_sub(b).wrapping_sub(1));
-        data.get(HEADER_CHECKSUM) == Some(&checksum) && Self::try_new(data).is_some()
+        data.get(HEADER_CHECKSUM) == Some(&checksum)
+        // && Self::try_new(data).is_some()
     }
 
-    fn rom_name(rom: &[u8]) -> Option<String> {
+    fn parse_rom_name(rom: &[u8]) -> Option<String> {
         let title_range = rom.get(TITLE_START..TITLE_END)?;
         Some(title_range.iter().take_while(|&&b| b != 0).map(|&b| b as char).collect())
     }
 
-    fn mode(rom: &[u8]) -> Option<CGMode> {
+    fn parse_mode(rom: &[u8]) -> Option<Mode> {
         let mode = match rom.get(CGB_FLAG)? {
-            0x80 => CGMode::Enhanced,
-            0xC0 => CGMode::Cgb,
-            _ => CGMode::Dmg,
+            0x80 => Mode::Enhanced,
+            0xC0 => Mode::Cgb,
+            _ => Mode::Dmg,
         };
         Some(mode)
     }
@@ -162,6 +169,7 @@ impl CartridgeHeader {
         }
     }
 
+    pub fn mode(&self) -> Mode { self.mode }
     pub fn has_battery(&self) -> bool { self.addons.contains(&Addon::Battery) }
     pub fn has_rumble(&self) -> bool { self.addons.contains(&Addon::Rumble) }
     pub fn has_rtc(&self) -> bool { self.addons.contains(&Addon::Rtc) }

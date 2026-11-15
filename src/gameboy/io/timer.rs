@@ -1,4 +1,4 @@
-use crate::gameboy::config::ConsoleType;
+use crate::gameboy::config::Model;
 use crate::gameboy::io::interrupt::InterruptFlag;
 use crate::gameboy::memory::io_reg::{IOReg, IORegister};
 use crate::gameboy::memory::map;
@@ -17,7 +17,7 @@ save_state_struct!(Timer { counter, tima, tma, tac });
 impl Timer {
     const BITS: [u8; 4] = [9, 3, 5, 7];
 
-    pub fn reset(&mut self, mode: &ConsoleType) {
+    pub fn reset(&mut self, mode: Model) {
         self.counter = (mode.initial_value(map::DIV) as u16) << 8;
         self.tima.reset(mode);
         self.tma.reset(mode);

@@ -1,5 +1,5 @@
 use crate::gameboy::cartridge::Cartridge;
-use crate::gameboy::config::ConsoleType;
+use crate::gameboy::config::Model;
 use crate::gameboy::io::dma::DMA;
 use crate::gameboy::io::interrupt::Interrupter;
 use crate::gameboy::io::joypad::{Button, Joypad};
@@ -7,12 +7,13 @@ use crate::gameboy::io::link::Link;
 use crate::gameboy::io::ppu::Ppu;
 use crate::gameboy::io::timer::Timer;
 use crate::gameboy::memory::io_reg::IOReg;
+use crate::gameboy::memory::io_reg::IORegister;
 use crate::gameboy::memory::map;
 use crate::gameboy::memory::wram::WRam;
 use crate::gameboy::monitor::MemAccess;
 use crate::save_state_struct;
 
-use super::map::{OAM_END, OAM_START, VRAM_END, VRAM_START};
+use super::map::{KEY1, OAM_END, OAM_START, VRAM_END, VRAM_START};
 
 pub struct Bus {
     cartridge: Cartridge,
@@ -27,10 +28,12 @@ pub struct Bus {
     trace: bool,
     dma: DMA,
     accesses: Vec<MemAccess>,
+    double_speed: bool,
+    key1: IORegister<KEY1, 0x81>,
 }
 
 #[rustfmt::skip]
-save_state_struct!(Bus {cartridge, ppu, wram, hram, cycle_count, interrupter, joypad, timer, link, trace, dma});
+save_state_struct!(Bus {cartridge, ppu, wram, hram, cycle_count, interrupter, joypad, timer, link, trace, dma, double_speed, key1});
 
 impl Default for Bus {
     fn default() -> Self {
@@ -47,12 +50,14 @@ impl Default for Bus {
             trace: false,
             dma: DMA::default(),
             accesses: Vec::new(),
+            double_speed: false,
+            key1: IORegister::<KEY1, 0x81>::default(),
         }
     }
 }
 
 impl Bus {
-    pub fn reset(&mut self, mode: &ConsoleType) {
+    pub fn reset(&mut self, mode: Model) {
         self.dma.reset(mode);
         self.ppu.reset(mode);
         self.wram.reset(mode);
@@ -63,9 +68,13 @@ impl Bus {
         self.hram = [0; map::HRAM_SIZE];
         self.cycle_count = 0;
         self.accesses.clear();
+        self.double_speed = false;
+        // self.double_speed = matches!(self.cartridge.mode());
     }
 
-    pub fn load_rom(&mut self, rom: Vec<u8>) { self.cartridge = Cartridge::try_new(rom).unwrap_or_default(); }
+    pub fn load_rom(&mut self, model: Model, rom: Vec<u8>) {
+        self.cartridge = Cartridge::try_new(model, rom).unwrap_or_default();
+    }
 
     pub fn read_internal(&self, addr: u16) -> u8 {
         match addr {
@@ -170,7 +179,7 @@ impl Bus {
     }
 
     pub fn tick(&mut self) {
-        let dots = 4;
+        let dots = if self.double_speed { 2 } else { 4 };
         self.ppu.ticks(dots, self.interrupter.ifl_mut());
         self.timer.tick(self.interrupter.ifl_mut());
         self.link.tick(self.interrupter.ifl_mut());
@@ -200,6 +209,13 @@ impl Bus {
     pub fn joypad(&self) -> &Joypad { &self.joypad }
     pub fn joypad_mut(&mut self) -> &mut Joypad { &mut self.joypad }
 
+    pub fn set_double_speed(&mut self) {
+        if !self.key1.is_set(0) {
+            return;
+        }
+        self.double_speed = true;
+        self.key1.write(0x80);
+    }
     pub fn press(&mut self, button: Button) {
         if self.joypad.press(button) {
             self.interrupter.ifl_mut().set(4);

@@ -62,14 +62,14 @@ impl GameBoy {
     }
 
     pub fn reset(&mut self) {
-        self.bus.reset(&self.config.mode);
-        self.cpu.reset(&self.config.mode);
+        self.bus.reset(self.config.model);
+        self.cpu.reset(self.config.model);
         self.sram_output.reset();
     }
 
     pub fn load_rom(&mut self, rom: Vec<u8>) {
+        self.bus.load_rom(self.config.model, rom);
         self.reset();
-        self.bus.load_rom(rom);
     }
 
     pub fn run_frame<M: Monitor>(&mut self, mut dbg: Option<&mut M>) -> Option<M::Stop> {

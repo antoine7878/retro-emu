@@ -12,7 +12,7 @@ use flag::{FlagSpec, Flags};
 use instruction::{AluOp, Cond, Instruction, R8, R16, R16Mem, R16Stk, ShiftOp};
 use registers::CpuRegisters;
 
-use super::config::ConsoleType;
+use super::config::Model;
 use super::memory::io_reg::IOReg;
 
 #[derive(Debug, PartialEq, Eq, Default)]
@@ -38,7 +38,7 @@ pub struct Cpu {
 save_state_struct!(Cpu { power_mode, ime, registers, delay_ie, halt_bug });
 
 impl Cpu {
-    pub fn reset(&mut self, mode: &ConsoleType) {
+    pub fn reset(&mut self, mode: Model) {
         self.registers.reset(mode);
         self.ime = false;
         self.delay_ie = false;
@@ -79,6 +79,7 @@ impl Cpu {
         if self.power_mode != PowerMode::Stop {
             return false;
         }
+        bus.set_double_speed();
         if bus.joypad().read() & 0x0F == 0x0F {
             return true;
         }

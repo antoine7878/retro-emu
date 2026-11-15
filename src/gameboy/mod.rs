@@ -8,7 +8,7 @@ mod monitor;
 mod serializer;
 mod sram_output;
 
-pub use config::Config;
+pub use config::{Config, Model};
 pub use console::{CYCLES_PER_FRAME, GameBoy};
 pub use io::joypad::Button;
 pub use io::ppu::{HEIGHT, WIDTH};
