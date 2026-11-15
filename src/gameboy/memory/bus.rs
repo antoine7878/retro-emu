@@ -2,11 +2,11 @@ use std::vec::Drain;
 
 use crate::gameboy::cartridge::Cartridge;
 use crate::gameboy::config::Model;
-use crate::gameboy::io::oam_dma::OamDma;
 use crate::gameboy::io::hdma::Hdma;
 use crate::gameboy::io::interrupt::Interrupter;
 use crate::gameboy::io::joypad::{Button, Joypad};
 use crate::gameboy::io::link::Link;
+use crate::gameboy::io::oam_dma::OamDma;
 use crate::gameboy::io::ppu::Ppu;
 use crate::gameboy::io::timer::Timer;
 use crate::gameboy::memory::io_reg::IOReg;
@@ -76,7 +76,7 @@ impl Bus {
         self.interrupter.reset();
         self.joypad.reset();
         self.timer.reset();
-        self.link.init_reg(model);
+        self.link.reset(self.cgb_mode());
         self.boot_enabled = true;
         self.hram = [0; map::HRAM_SIZE];
         self.cycle_count = 0;
@@ -207,7 +207,7 @@ impl Bus {
         }
         self.timer.tick(self.interrupter.ifl_mut());
         self.link.tick(self.interrupter.ifl_mut());
-        self.cartridge.tick();
+        self.cartridge.tick(dots);
         if let Some((src, dst)) = self.oam_dma.tick() {
             let byte = match src {
                 VRAM_START..VRAM_END => self.ppu.read_vram_dma(src),
@@ -232,13 +232,14 @@ impl Bus {
         }
     }
 
-    pub fn toggle_double_speed(&mut self) {
+    pub fn toggle_double_speed(&mut self) -> bool {
         if !self.key1.is_set(0) {
-            return;
+            return false;
         }
         self.double_speed = !self.double_speed;
         self.key1.clear(0);
         self.key1.write_bit(7, self.double_speed);
+        return true;
     }
 
     pub fn press(&mut self, button: Button) {

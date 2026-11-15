@@ -52,7 +52,7 @@ impl MBC for Mbc2 {
 
     fn load_ram(&mut self, ram: Vec<u8>) {
         let mut ram = ram;
-        ram.resize(RAM_SIZE, 0);
+        ram.resize(RAM_SIZE, 0xFF);
         self.ram.copy_from_slice(&ram);
     }
 }

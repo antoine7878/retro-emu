@@ -126,12 +126,12 @@ impl MBC for Mbc3 {
         self.ram = ram[13..].to_vec();
     }
 
-    fn tick(&mut self) {
+    fn tick(&mut self, dots: u8) {
         if self.time[4] & 0x40 != 0 {
             return;
         };
-        self.rtc_clock += 1;
-        if self.rtc_clock == 1_048_576 {
+        self.rtc_clock += dots as u32;
+        if self.rtc_clock >= 4_194_304 {
             self.inc_seconds();
             self.rtc_clock = 0;
         }

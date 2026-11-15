@@ -72,7 +72,7 @@ impl MBC for Mbc5 {
     fn ram(&self) -> Vec<u8> { self.ram.clone() }
     fn load_ram(&mut self, ram: Vec<u8>) {
         let mut ram = ram;
-        ram.resize(self.ram_bank_count * map::SRAM_BANK_SIZE, 0);
+        ram.resize(self.ram_bank_count * map::SRAM_BANK_SIZE, 0xFF);
         self.ram.copy_from_slice(&ram);
     }
 

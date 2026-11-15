@@ -26,7 +26,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     let config = Config::new(args.model, args.serial_print)?;
     let mut game_boy = GameBoy::new(config);
 
-    game_boy.load_file(args.infiles.get(0))?;
+    game_boy.load_file(args.infiles.first())?;
     let mut front = Frontend::new(args, sdl)?;
     front.run(&mut game_boy)?;
     game_boy.bus().cartridge().save_ram();

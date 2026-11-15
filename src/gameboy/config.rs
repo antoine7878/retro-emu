@@ -40,14 +40,14 @@ impl Model {
     }
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum Mode {
+pub enum CgbFlag {
     #[default]
     Dmg,
     Enhanced,
     Cgb,
 }
 
-save_state_enum!(Mode { Dmg, Enhanced, Cgb });
+save_state_enum!(CgbFlag { Dmg, Enhanced, Cgb });
 
 impl TryFrom<String> for Model {
     type Error = ArgError;

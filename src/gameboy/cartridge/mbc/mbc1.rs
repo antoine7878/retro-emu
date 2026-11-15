@@ -26,7 +26,7 @@ impl MBC for Mbc1 {
         let rom_bank_count = header.rom_bank_count as usize;
         let rom_size = rom_bank_count * map::ROM_BANK_SIZE;
         let mut rom = rom;
-        rom.resize(rom_size, 0x00);
+        rom.resize(rom_size, 0xFF);
         let ram_bank_count = header.ram_bank_count as usize;
         let ram_size = ram_bank_count * map::SRAM_BANK_SIZE;
         let ram = vec![0; ram_size];

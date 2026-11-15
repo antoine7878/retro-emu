@@ -1,6 +1,5 @@
 use std::io::Write;
 
-use crate::gameboy::config::Model;
 use crate::gameboy::io::interrupt::InterruptFlag;
 use crate::gameboy::memory::io_reg::{IOReg, IORegister};
 use crate::gameboy::memory::map;
@@ -14,18 +13,16 @@ pub struct Link {
     buffer: IORegister<0xFF>,
     ctrl: IORegister<0x83>,
     print: bool,
-    cgb: bool,
+    cgb_mode: bool,
     remaining: u16,
 }
 
-save_state_struct!(Link { buffer, ctrl, print, cgb, remaining });
+save_state_struct!(Link { buffer, ctrl, print, cgb_mode, remaining });
 
 impl Link {
     pub fn set_print(&mut self, on: bool) { self.print = on; }
 
-    pub fn init_reg(&mut self, mode: Model) {
-        *self = Self { print: self.print, cgb: matches!(mode, Model::Cgb), ..Self::default() };
-    }
+    pub fn reset(&mut self, cgb_mode: bool) { *self = Self { print: self.print, cgb_mode, ..Self::default() }; }
 
     pub fn read(&self, addr: u16) -> u8 {
         match addr {
@@ -68,7 +65,7 @@ impl Link {
             let _ = out.write_all(&[self.buffer.read()]);
             let _ = out.flush();
         }
-        let fast = self.cgb && self.ctrl.is_set(1);
+        let fast = self.cgb_mode && self.ctrl.is_set(1);
         self.remaining = if fast { FAST_CYCLES } else { NORMAL_CYCLES };
     }
 }

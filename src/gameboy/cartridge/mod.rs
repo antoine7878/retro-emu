@@ -11,7 +11,6 @@ use crate::gameboy::serializer::{SaveState, SerdeError, StateReader, StateWriter
 use crate::save_state_struct;
 
 use super::Model;
-use super::config::Mode;
 
 pub const SAVE_DIR: &str = "rscs/save";
 pub const MAGIC_SAVE: &[u8; 7] = b"GB_SAVE";
@@ -104,6 +103,5 @@ impl Cartridge {
     pub fn header(&self) -> &CartridgeHeader { &self.header }
     pub fn rom(&self) -> Vec<u8> { self.mbc.rom() }
     pub fn take_rumble(&mut self) -> f32 { self.mbc.take_rumble() }
-    pub fn tick(&mut self) { self.mbc.tick(); }
-    pub fn mode(&self) -> Mode { self.header.mode() }
+    pub fn tick(&mut self, dots: u8) { self.mbc.tick(dots); }
 }

@@ -59,7 +59,8 @@ pub struct Ppu {
 
     stat_line: bool,
     mode: PpuMode,
-    dmg: bool,
+    // dmg: bool,
+    model: Model,
 
     window_line: u16,
     wy_triggered: bool,
@@ -88,7 +89,7 @@ pub struct Ppu {
 }
 
 #[rustfmt::skip]
-save_state_struct!(Ppu {pixels, redraw, dot,  mode, dmg, window_line, first_line, skip_frame, hblank_started, selected_objects, selected_objects_len, vram, oam, lcdc, stat, scy, scx, ly, lyc, bgp, obp0, obp1, wy, wx, vbk, stat_line, wy_triggered});
+save_state_struct!(Ppu {pixels, redraw, dot,  mode, model, window_line, first_line, skip_frame, hblank_started, selected_objects, selected_objects_len, vram, oam, lcdc, stat, scy, scx, ly, lyc, bgp, obp0, obp1, wy, wx, vbk, stat_line, wy_triggered});
 
 impl Default for Ppu {
     fn default() -> Self {
@@ -119,7 +120,7 @@ impl Default for Ppu {
             wx: IORegister::default(),
             vbk: IORegister::default(),
             mode: PpuMode::HBlank,
-            dmg: true,
+            model: Model::Dmg,
         }
     }
 }
@@ -127,7 +128,7 @@ impl Default for Ppu {
 impl Ppu {
     pub fn reset(&mut self, mode: Model) {
         *self = Self::default();
-        self.dmg = matches!(mode, Model::Dmg);
+        self.model = mode;
     }
 
     pub fn read(&self, addr: u16) -> u8 {
@@ -193,7 +194,7 @@ impl Ppu {
             self.stat.write(value);
             return;
         }
-        if self.dmg {
+        if self.model == Model::Dmg {
             let lyc_match = self.ly.read_raw() == self.lyc.read_raw();
             let line = matches!(self.mode, PpuMode::HBlank | PpuMode::VBlank) || lyc_match;
             if line && !self.stat_line {

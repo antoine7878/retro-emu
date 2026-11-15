@@ -211,7 +211,9 @@ impl Cpu {
     fn stop(&mut self, bus: &mut Bus) {
         self.take_pc8(bus);
         bus.write_internal(map::DIV, 0);
-        bus.toggle_double_speed();
+        if bus.toggle_double_speed() {
+            return;
+        }
         self.power_mode = PowerMode::Stop
     }
 
