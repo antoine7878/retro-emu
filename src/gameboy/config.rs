@@ -5,6 +5,8 @@ use crate::cli::ArgError;
 use crate::frontend::FRAME_RATE;
 use crate::{save_state_enum, save_state_struct};
 
+use super::roms;
+
 #[derive(Debug, Clone)]
 pub struct Config {
     pub model: Model,
@@ -29,6 +31,14 @@ pub enum Model {
 
 save_state_enum!(Model { Dmg, Cgb });
 
+impl Model {
+    pub fn boot_rom(&self) -> &'static [u8] {
+        match self {
+            Model::Dmg => roms::DMG_BOOT,
+            Model::Cgb => roms::CGB_BOOT,
+        }
+    }
+}
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Mode {
     #[default]

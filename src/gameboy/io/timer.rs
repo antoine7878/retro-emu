@@ -6,9 +6,9 @@ use crate::save_state_struct;
 #[derive(Default)]
 pub struct Timer {
     counter: u16,
-    tima: IORegister<{ map::TIMA }, 0xFF>,
-    tma: IORegister<{ map::TMA }, 0xFF>,
-    tac: IORegister<{ map::TAC }, 0x07>,
+    tima: IORegister<0xFF>,
+    tma: IORegister<0xFF>,
+    tac: IORegister<0x07>,
 }
 
 save_state_struct!(Timer { counter, tima, tma, tac });

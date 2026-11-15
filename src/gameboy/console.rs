@@ -14,6 +14,7 @@ use crate::save_state_struct;
 use super::serializer::{SaveState, SerdeError, StateReader, StateWriter};
 
 pub const CYCLES_PER_FRAME: u64 = 17556;
+pub const DOUBLE_CYCLES_PER_FRAME: u64 = 17556 * 2;
 
 pub struct GameBoy {
     cpu: Cpu,
@@ -73,7 +74,8 @@ impl GameBoy {
 
     pub fn run_frame<M: Monitor>(&mut self, mut dbg: Option<&mut M>) -> Option<M::Stop> {
         let start = self.bus.get_cycle_count();
-        while self.bus.get_cycle_count() - start < CYCLES_PER_FRAME {
+        let cycle_per_frame = if self.bus.double_speed() { DOUBLE_CYCLES_PER_FRAME } else { CYCLES_PER_FRAME };
+        while self.bus.get_cycle_count() - start < cycle_per_frame {
             if self.cpu.stopped(&mut self.bus) {
                 break;
             }

@@ -4,7 +4,7 @@ use crate::save_state_struct;
 
 pub struct WRam {
     banks: [[u8; map::WRAM_SIZE]; 8],
-    svbk: IORegister<{ map::SVBK }, 0x07>,
+    svbk: IORegister<0x07>,
 }
 
 save_state_struct!(WRam { banks, svbk });

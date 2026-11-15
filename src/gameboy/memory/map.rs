@@ -44,19 +44,6 @@ pub const DMA_END: u16 = HDMA5 + 1;
 pub const PAL_START: u16 = BCPS;
 pub const PAL_END: u16 = OPRI + 1;
 
-pub const U1: u16 = 0xFF03;
-pub const U2S: u16 = 0xFF08;
-pub const U2E: u16 = 0xFF0F;
-pub const U3S: u16 = 0xFF27;
-pub const U3E: u16 = 0xFF30;
-pub const U5: u16 = 0xFF4E;
-pub const U6S: u16 = 0xFF56;
-pub const U6E: u16 = 0xFF68;
-pub const U7S: u16 = 0xFF6D;
-pub const U7E: u16 = 0xFF70;
-pub const U8S: u16 = 0xFF71;
-pub const U8E: u16 = 0xFF80;
-
 // ----- Joypad --------------------
 
 pub const JOYPAD: u16 = 0xFF00;

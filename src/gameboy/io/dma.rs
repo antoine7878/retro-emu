@@ -10,7 +10,7 @@ pub struct DMA {
     current_byte: u8,
     src: u16,
     i: u16,
-    dma: IORegister<{ map::DMA }, 0xFF>,
+    dma: IORegister<0xFF>,
 }
 
 save_state_struct!(DMA { is_delay, is_active, has_transferred, current_byte, src, i, dma });

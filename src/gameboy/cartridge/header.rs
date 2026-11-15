@@ -9,7 +9,7 @@ const RAM_SIZE_FLAG: usize = 0x149;
 
 const TITLE_START: usize = 0x0134;
 const TITLE_END: usize = 0x0143;
-pub const CGB_FLAG: usize = 0x143;
+pub const CGB_FLAG: usize = 0x0143;
 const CARTIDGE_TYPE: usize = 0x0147;
 const HEADER_CHECKSUM: usize = 0x014D;
 const GLOBAL_CHECKSUM: usize = 0x014E;

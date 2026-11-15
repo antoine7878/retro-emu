@@ -2,11 +2,11 @@ use crate::gameboy::memory::io_reg::{IOReg, IORegister};
 use crate::gameboy::memory::map;
 use crate::save_state_struct;
 
-pub type InterruptFlag = IORegister<{ map::IF }, 0x1F>;
+pub type InterruptFlag = IORegister<0x1F>;
 
 #[derive(Default)]
 pub struct Interrupter {
-    ie: IORegister<{ map::IE }, 0xFF>,
+    ie: IORegister<0xFF>,
     ifl: InterruptFlag,
 }
 

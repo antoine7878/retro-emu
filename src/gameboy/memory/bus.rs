@@ -1,3 +1,5 @@
+use std::vec::Drain;
+
 use crate::gameboy::cartridge::Cartridge;
 use crate::gameboy::config::Model;
 use crate::gameboy::io::dma::DMA;
@@ -11,10 +13,9 @@ use crate::gameboy::memory::io_reg::IORegister;
 use crate::gameboy::memory::map;
 use crate::gameboy::memory::wram::WRam;
 use crate::gameboy::monitor::MemAccess;
-use crate::gameboy::roms;
 use crate::save_state_struct;
 
-use super::map::{KEY1, OAM_END, OAM_START, VRAM_END, VRAM_START};
+use super::map::{OAM_END, OAM_START, VRAM_END, VRAM_START};
 
 pub struct Bus {
     cartridge: Cartridge,
@@ -30,13 +31,14 @@ pub struct Bus {
     dma: DMA,
     accesses: Vec<MemAccess>,
     double_speed: bool,
-    key1: IORegister<KEY1, 0x81>,
-    boot_rom: &'static [u8],
+    key0: IORegister<0x04>,
+    key1: IORegister<0x01, 0x81>,
     boot_enabled: bool,
+    model: Model,
 }
 
 #[rustfmt::skip]
-save_state_struct!(Bus {cartridge, ppu, wram, hram, cycle_count, interrupter, joypad, timer, link, trace, dma, double_speed, key1, boot_enabled});
+save_state_struct!(Bus {cartridge, ppu, wram, hram, cycle_count, interrupter, joypad, timer, link, trace, dma, double_speed, key0, key1, boot_enabled, model});
 
 impl Default for Bus {
     fn default() -> Self {
@@ -54,9 +56,10 @@ impl Default for Bus {
             dma: DMA::default(),
             accesses: Vec::new(),
             double_speed: false,
-            key1: IORegister::<KEY1, 0x81>::default(),
-            boot_rom: &[],
+            key0: IORegister::default(),
+            key1: IORegister::default(),
             boot_enabled: false,
+            model: Model::Dmg,
         }
     }
 }
@@ -70,17 +73,14 @@ impl Bus {
         self.joypad.reset();
         self.timer.reset();
         self.link.init_reg(model);
-        self.key1.reset();
-        self.boot_rom = match model {
-            Model::Dmg => roms::DMG_BOOT,
-            Model::Cgb => roms::CGB_BOOT,
-        };
         self.boot_enabled = true;
         self.hram = [0; map::HRAM_SIZE];
         self.cycle_count = 0;
         self.accesses.clear();
         self.double_speed = false;
-        // self.double_speed = matches!(self.cartridge.mode());
+        self.model = model;
+        self.key0.reset();
+        self.key1.reset();
     }
 
     pub fn load_rom(&mut self, model: Model, rom: Vec<u8>) {
@@ -91,40 +91,39 @@ impl Bus {
         if !self.boot_enabled || matches!(addr, map::BOOT_HEADER_START..map::BOOT_HEADER_END) {
             return None;
         }
-        self.boot_rom.get(addr as usize).copied()
+        self.model.boot_rom().get(addr as usize).copied()
     }
 
     pub fn read_internal(&self, addr: u16) -> u8 {
-        match addr {
-            map::ROM_START..map::ROM_END => self.read_boot_rom(addr).unwrap_or_else(|| self.cartridge.read(addr)),
-            map::VRAM_START..map::VRAM_END => self.ppu.read(addr),
-            map::SRAM_START..map::SRAM_END => self.cartridge.read(addr),
-            map::WRAM_START..map::WRAM_END | map::SVBK => self.wram.read(addr),
-            map::ECHO_START..map::ECHO_END => self.read_internal(addr - 0x2000),
-            map::OAM_START..map::OAM_END => self.ppu.read(addr),
-            map::NOT_START..map::NOT_END => 0xFF,
-            map::DMA => self.dma.read(),
-            map::PPU_START..map::PPU_END | map::VBK => self.ppu.read(addr),
-            map::DMA_START..map::DMA_END | map::PAL_START..map::PAL_END => self.ppu.read(addr),
-            map::HRAM_START..map::HRAM_END => self.hram[(addr - map::HRAM_START) as usize],
-            map::TIMER_START..map::TIMER_END => self.timer.read(addr),
-            // TODO:Audio
-            map::AUDIO_START..map::AUDIO_END => 0xFF,
-            map::WAVE_START..map::WAVE_END => 0xFF,
-            // TODO:keypad
-            map::KEY0 | map::KEY1 => 0xFF,
-            map::BOOT_DISABLE => 0xFF,
+        use map::*;
 
-            map::IE | map::IF => self.interrupter.read(addr),
-            map::JOYPAD => self.joypad.read(),
-            map::SB | map::SC => self.link.read(addr),
-            map::U1
-            | map::U2S..map::U2E
-            | map::U3S..map::U3E
-            | map::U5
-            | map::U6S..map::U6E
-            | map::U7S..map::U7E
-            | map::U8S..map::U8E => 0xFF,
+        match addr {
+            ROM_START..ROM_END => self.read_boot_rom(addr).unwrap_or_else(|| self.cartridge.read(addr)),
+            VRAM_START..VRAM_END => self.ppu.read(addr),
+            SRAM_START..SRAM_END => self.cartridge.read(addr),
+            WRAM_START..WRAM_END => self.wram.read(addr),
+            ECHO_START..ECHO_END => self.read_internal(addr - 0x2000),
+            OAM_START..OAM_END => self.ppu.read(addr),
+            DMA => self.dma.read(),
+            PPU_START..PPU_END => self.ppu.read(addr),
+            HRAM_START..HRAM_END => self.hram[(addr - HRAM_START) as usize],
+            TIMER_START..TIMER_END => self.timer.read(addr),
+            BOOT_DISABLE => 0xFF,
+            IE | IF => self.interrupter.read(addr),
+            JOYPAD => self.joypad.read(),
+            SB | SC => self.link.read(addr),
+            // TODO:Audio
+            AUDIO_START..AUDIO_END => 0xFF,
+            WAVE_START..WAVE_END => 0xFF,
+
+            _ if !self.cgb_mode() => 0xFF,
+
+            SVBK => self.wram.read(addr),
+            VBK => self.ppu.read(addr),
+            DMA_START..DMA_END | PAL_START..PAL_END => self.ppu.read(addr),
+            KEY0 => self.key0.read(),
+            KEY1 => self.key1.read(),
+            _ => 0xFF,
         }
     }
 
@@ -144,38 +143,36 @@ impl Bus {
     }
 
     pub fn write_internal(&mut self, addr: u16, value: u8) {
-        match addr {
-            map::ROM_START..map::ROM_END => self.cartridge.write(addr, value),
-            map::VRAM_START..map::VRAM_END => self.ppu.write(addr, value),
-            map::SRAM_START..map::SRAM_END => self.cartridge.write(addr, value),
-            map::WRAM_START..map::WRAM_END | map::SVBK => self.wram.write(addr, value),
-            map::ECHO_START..map::ECHO_END => self.write_internal(addr - 0x2000, value),
-            map::OAM_START..map::OAM_END => self.ppu.write(addr, value),
-            map::NOT_START..map::NOT_END => (),
-            map::DMA => self.dma.write(value),
-            map::STAT => self.ppu.write_stat(value, self.interrupter.ifl_mut()),
-            map::PPU_START..map::PPU_END | map::VBK => self.ppu.write(addr, value),
-            map::DMA_START..map::DMA_END | map::PAL_START..map::PAL_END => self.ppu.write(addr, value),
-            map::HRAM_START..map::HRAM_END => self.hram[(addr - map::HRAM_START) as usize] = value,
-            map::TIMER_START..map::TIMER_END => self.timer.write(addr, value, self.interrupter.ifl_mut()),
-            // TODO: Audio
-            map::AUDIO_START..map::AUDIO_END => (),
-            map::WAVE_START..map::WAVE_END => (),
-            // TODO: Keypad
-            map::KEY0 | map::KEY1 => (),
-            map::BOOT_DISABLE if value != 0 => self.boot_enabled = false,
-            map::BOOT_DISABLE => (),
+        use map::*;
 
-            map::IE | map::IF => self.interrupter.write(addr, value),
-            map::JOYPAD => self.joypad.write(value),
-            map::SB | map::SC => self.link.write(addr, value),
-            map::U1
-            | map::U2S..map::U2E
-            | map::U3S..map::U3E
-            | map::U5
-            | map::U6S..map::U6E
-            | map::U7S..map::U7E
-            | map::U8S..map::U8E => (),
+        match addr {
+            ROM_START..ROM_END => self.cartridge.write(addr, value),
+            VRAM_START..VRAM_END => self.ppu.write(addr, value),
+            SRAM_START..SRAM_END => self.cartridge.write(addr, value),
+            WRAM_START..WRAM_END => self.wram.write(addr, value),
+            ECHO_START..ECHO_END => self.write_internal(addr - 0x2000, value),
+            OAM_START..OAM_END => self.ppu.write(addr, value),
+            DMA => self.dma.write(value),
+            STAT => self.ppu.write_stat(value, self.interrupter.ifl_mut()),
+            PPU_START..PPU_END => self.ppu.write(addr, value),
+            HRAM_START..HRAM_END => self.hram[(addr - HRAM_START) as usize] = value,
+            TIMER_START..TIMER_END => self.timer.write(addr, value, self.interrupter.ifl_mut()),
+            BOOT_DISABLE if value != 0 => self.boot_enabled = false,
+            IE | IF => self.interrupter.write(addr, value),
+            JOYPAD => self.joypad.write(value),
+            SB | SC => self.link.write(addr, value),
+            // TODO: Audio
+            AUDIO_START..AUDIO_END => (),
+            WAVE_START..WAVE_END => (),
+
+            _ if !self.cgb_mode() => (),
+
+            SVBK => self.wram.write(addr, value),
+            VBK => self.ppu.write(addr, value),
+            DMA_START..DMA_END | PAL_START..PAL_END => self.ppu.write(addr, value),
+            KEY0 if self.boot_enabled => self.key0.write(value),
+            KEY1 => self.key1.write(value),
+            _ => (),
         }
     }
 
@@ -213,30 +210,33 @@ impl Bus {
         self.cycle_count += 1;
     }
 
-    pub fn pending_interrupt(&self) -> u8 { self.interrupter.pending() }
-    pub fn ack_interrupt(&mut self, bit: u8) { self.interrupter.ack(bit); }
-    pub const fn get_cycle_count(&self) -> u64 { self.cycle_count }
-    pub const fn get_pixels(&self) -> &[u8] { self.ppu.get_pixels() }
-    pub fn take_redraw(&mut self) -> bool { self.ppu.take_redraw() }
-    pub fn set_trace(&mut self, on: bool) { self.trace = on; }
-
-    pub fn set_serial_print(&mut self, on: bool) { self.link.set_print(on); }
-    pub fn drain_accesses(&mut self) -> std::vec::Drain<'_, MemAccess> { self.accesses.drain(..) }
-    pub fn cartridge(&self) -> &Cartridge { &self.cartridge }
-    pub fn cartridge_mut(&mut self) -> &mut Cartridge { &mut self.cartridge }
-    pub fn joypad(&self) -> &Joypad { &self.joypad }
-    pub fn joypad_mut(&mut self) -> &mut Joypad { &mut self.joypad }
-
-    pub fn set_double_speed(&mut self) {
+    pub fn toggle_double_speed(&mut self) {
         if !self.key1.is_set(0) {
             return;
         }
-        self.double_speed = true;
-        self.key1.write(0x80);
+        self.double_speed = !self.double_speed;
+        self.key1.clear(0);
+        self.key1.write_bit(7, self.double_speed);
     }
+
     pub fn press(&mut self, button: Button) {
         if self.joypad.press(button) {
             self.interrupter.ifl_mut().set(4);
         }
     }
+
+    fn cgb_mode(&self) -> bool { self.model == Model::Cgb && (self.boot_enabled || self.key0.is_clear(2)) }
+    pub fn take_redraw(&mut self) -> bool { self.ppu.take_redraw() }
+    pub fn pending_interrupt(&self) -> u8 { self.interrupter.pending() }
+    pub fn ack_interrupt(&mut self, bit: u8) { self.interrupter.ack(bit); }
+    pub fn set_serial_print(&mut self, on: bool) { self.link.set_print(on); }
+    pub fn drain_accesses(&mut self) -> Drain<'_, MemAccess> { self.accesses.drain(..) }
+    pub const fn joypad(&self) -> &Joypad { &self.joypad }
+    pub const fn double_speed(&self) -> bool { self.double_speed }
+    pub const fn get_cycle_count(&self) -> u64 { self.cycle_count }
+    pub const fn cartridge(&self) -> &Cartridge { &self.cartridge }
+    pub const fn set_trace(&mut self, on: bool) { self.trace = on; }
+    pub const fn get_pixels(&self) -> &[u8] { self.ppu.get_pixels() }
+    pub const fn joypad_mut(&mut self) -> &mut Joypad { &mut self.joypad }
+    pub const fn cartridge_mut(&mut self) -> &mut Cartridge { &mut self.cartridge }
 }

@@ -8,7 +8,7 @@ use sdl2::video::Window;
 
 use super::timing::{Speed, TURBO_FACTOR};
 use super::{FRAME_RATE, SCALE};
-use crate::gameboy::{CYCLES_PER_FRAME, GameBoy, HEIGHT, WIDTH};
+use crate::gameboy::{CYCLES_PER_FRAME, DOUBLE_CYCLES_PER_FRAME, GameBoy, HEIGHT, WIDTH};
 
 const PRESENT_INTERVAL: Duration = Duration::from_nanos(1_000_000_000 / FRAME_RATE as u64);
 
@@ -23,13 +23,14 @@ impl Default for FpsCounter {
 }
 
 impl FpsCounter {
-    fn tick(&mut self, cycle: u64) -> Option<(f64, f64)> {
+    fn tick(&mut self, cycle: u64, double_speed: bool) -> Option<(f64, f64)> {
         let elapsed = self.window_start.elapsed();
         if elapsed < Duration::from_secs(1) {
             return None;
         }
         let secs = elapsed.as_secs_f64();
-        let frames = cycle.saturating_sub(self.start_cycle) as f64 / CYCLES_PER_FRAME as f64;
+        let cycle_per_frame = if double_speed { DOUBLE_CYCLES_PER_FRAME } else { CYCLES_PER_FRAME };
+        let frames = cycle.saturating_sub(self.start_cycle) as f64 / cycle_per_frame as f64;
         let fps = (frames / secs, self.presented as f64 / secs);
         *self = Self { start_cycle: cycle, ..Self::default() };
         Some(fps)
@@ -47,7 +48,8 @@ pub struct Video {
 impl Video {
     pub fn new(sdl: &Sdl) -> Result<Self, Box<dyn Error>> {
         let (w, h) = (WIDTH as u32, HEIGHT as u32);
-        let window = sdl.video()?.window("RetroEmu", w * SCALE, h * SCALE).position_centered().always_on_top().build()?;
+        let window =
+            sdl.video()?.window("RetroEmu", w * SCALE, h * SCALE).position_centered().always_on_top().build()?;
         let mut canvas = window.into_canvas().present_vsync().build()?;
         canvas.set_logical_size(w, h)?;
         canvas.set_integer_scale(true)?;
@@ -74,7 +76,7 @@ impl Video {
     }
 
     pub fn update_fps(&mut self, game_boy: &GameBoy, speed: Speed) {
-        if let Some(fps) = self.fps.tick(game_boy.cycle_count()) {
+        if let Some(fps) = self.fps.tick(game_boy.cycle_count(), game_boy.bus().double_speed()) {
             self.set_title(game_boy, speed, Some(fps));
         }
     }

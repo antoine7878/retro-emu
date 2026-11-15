@@ -11,8 +11,8 @@ const FAST_CYCLES: u16 = 16;
 
 #[derive(Default)]
 pub struct Link {
-    buffer: IORegister<{ map::SB }, 0xFF>,
-    ctrl: IORegister<{ map::SC }, 0x83>,
+    buffer: IORegister<0xFF>,
+    ctrl: IORegister<0x83>,
     print: bool,
     cgb: bool,
     remaining: u16,
@@ -24,10 +24,7 @@ impl Link {
     pub fn set_print(&mut self, on: bool) { self.print = on; }
 
     pub fn init_reg(&mut self, mode: Model) {
-        self.buffer.reset();
-        self.ctrl.reset();
-        self.cgb = matches!(mode, Model::Cgb);
-        self.remaining = 0;
+        *self = Self { print: self.print, cgb: matches!(mode, Model::Cgb), ..Self::default() };
     }
 
     pub fn read(&self, addr: u16) -> u8 {

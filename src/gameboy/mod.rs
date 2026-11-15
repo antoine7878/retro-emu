@@ -10,7 +10,7 @@ mod serializer;
 mod sram_output;
 
 pub use config::{Config, Model};
-pub use console::{CYCLES_PER_FRAME, GameBoy};
+pub use console::{CYCLES_PER_FRAME, DOUBLE_CYCLES_PER_FRAME, GameBoy};
 pub use io::joypad::Button;
 pub use io::ppu::{HEIGHT, WIDTH};
 pub use memory::map::{memory_location, memory_range};

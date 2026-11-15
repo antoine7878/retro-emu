@@ -72,7 +72,6 @@ impl Cpu {
         if self.power_mode != PowerMode::Stop {
             return false;
         }
-        bus.set_double_speed();
         if bus.joypad().read() & 0x0F == 0x0F {
             return true;
         }
@@ -212,6 +211,7 @@ impl Cpu {
     fn stop(&mut self, bus: &mut Bus) {
         self.take_pc8(bus);
         bus.write_internal(map::DIV, 0);
+        bus.toggle_double_speed();
         self.power_mode = PowerMode::Stop
     }
 
