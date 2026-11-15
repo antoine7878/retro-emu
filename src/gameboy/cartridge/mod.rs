@@ -13,6 +13,7 @@ use crate::save_state_struct;
 use super::Model;
 use super::config::Mode;
 
+pub const SAVE_DIR: &str = "rscs/save";
 pub const MAGIC_SAVE: &[u8; 7] = b"GB_SAVE";
 const SAVE_VERSION: u16 = 1;
 
@@ -35,7 +36,7 @@ impl Cartridge {
     pub fn try_new(model: Model, rom: Vec<u8>) -> Option<Self> {
         let header = CartridgeHeader::try_new(model, &rom)?;
         let mbc = Mbcs::try_from_header(rom, &header)?;
-        let file_name = format!("{}.save", header.rom_name);
+        let file_name = format!("{}/{}.save", SAVE_DIR, header.rom_name);
         let mut cart = Self { header, mbc, file_name };
         cart.load_ram_file();
         Some(cart)
@@ -56,7 +57,7 @@ impl Cartridge {
         if !self.header.has_battery() {
             return;
         }
-        if let Err(e) = fs::write(&self.file_name, self.save_data()) {
+        if let Err(e) = fs::create_dir_all(SAVE_DIR).and_then(|_| fs::write(&self.file_name, self.save_data())) {
             eprintln!("Failed to write save file {}: {}", self.file_name, e);
         }
     }

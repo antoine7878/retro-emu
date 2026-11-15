@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import IO
 
 ROOT = Path(__file__).resolve().parent.parent
-TESTS = ROOT / "rscs"
+TESTS = ROOT / "tests"
 MOONEYE_OK = bytes([3, 5, 8, 13, 21, 34])
 MOONEYE_KO = bytes([0x42] * 6)
 BIN = ROOT / "target" / "release" / "retro_emu"
@@ -53,6 +53,7 @@ ROMS = [
 def run(rom: Path) -> str:
     proc = subprocess.Popen(
         [BIN, rom, "-s"],
+        cwd=ROOT,
         stdout=subprocess.PIPE,
         stderr=subprocess.DEVNULL,
     )
@@ -90,7 +91,7 @@ COLORS = {"OK": "\033[32m", "KO": "\033[31m"}
 
 
 def remove_saves():
-    Path("save_mooneye-gb test").unlink(missing_ok=True)
+    (ROOT / "rscs" / "save" / "mooneye-gb test.save").unlink(missing_ok=True)
 
 
 def main():

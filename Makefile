@@ -4,7 +4,7 @@ test:
 	cargo run -- $(ROM)
 
 ctest:
-	./rscs/tester.py
+	./tests/tester.py
 
 debug:
 	cargo run --release -- $(ROM) -f debug 2> /dev/null

@@ -1,11 +1,11 @@
 /target
 .DS_Store
 
-rscs/blargg_test-roms/
-rscs/subject-test-roms/
+tests/blargg_test-roms/
+tests/subject-test-roms/
 rscs/games/
-*.save
-*.state
+rscs/save/
+rscs/state/
 
 todo*
 

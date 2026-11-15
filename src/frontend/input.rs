@@ -61,6 +61,13 @@ impl Input {
                 }
                 Event::Quit { .. } | Event::KeyDown { scancode: Some(Scancode::Escape), .. } => out.push(Action::Quit),
                 Event::KeyDown { scancode: Some(Scancode::Num1), .. } => out.push(Action::SaveState),
+
+                Event::KeyDown { scancode: Some(Scancode::Space), repeat: false, .. } => {
+                    out.push(Action::HoldTurbo(Turbo::Unlimited, true))
+                }
+                Event::KeyUp { scancode: Some(Scancode::Space), .. } => {
+                    out.push(Action::HoldTurbo(Turbo::Unlimited, false))
+                }
                 Event::KeyDown { scancode: Some(s), repeat: false, .. } => out.extend(Self::key(s).map(Action::Press)),
                 Event::KeyUp { scancode: Some(s), .. } => out.extend(Self::key(s).map(Action::Release)),
                 Event::ControllerButtonDown { button, .. } => out.extend(Self::pad_action(button, true)),

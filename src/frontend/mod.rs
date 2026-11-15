@@ -20,6 +20,7 @@ use video::Video;
 
 pub const SCALE: u32 = 4;
 pub const FRAME_RATE: u32 = 60;
+const STATE_DIR: &str = "rscs/state";
 
 pub struct Frontend {
     video: Video,
@@ -72,8 +73,8 @@ impl Frontend {
                 }
                 Action::SaveState => {
                     let state = game_boy.save_state();
-                    let file_name = format!("{}_{}.state", timestamp(), game_boy.bus().cartridge().header().rom_name);
-                    match fs::write(&file_name, state) {
+                    let file_name = format!("{}/{}_{}.state", STATE_DIR, timestamp(), game_boy.bus().cartridge().header().rom_name);
+                    match fs::create_dir_all(STATE_DIR).and_then(|_| fs::write(&file_name, state)) {
                         Ok(_) => eprintln!("SaveState success full at: {}", file_name),
                         Err(e) => eprintln!("SaveState failed: {}", e),
                     }
