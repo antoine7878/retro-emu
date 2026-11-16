@@ -5,6 +5,7 @@ use sdl2::event::Event;
 use sdl2::keyboard::Scancode;
 use sdl2::{EventPump, GameControllerSubsystem, Sdl};
 
+use super::autofire::Autofire;
 use crate::gameboy::Button;
 
 const DEAD_ZONE: i16 = 8000;
@@ -27,6 +28,10 @@ pub enum Action {
     SaveState,
 }
 
+impl Action {
+    pub fn button(b: Button, pressed: bool) -> Self { if pressed { Self::Press(b) } else { Self::Release(b) } }
+}
+
 pub struct Input {
     event_pump: EventPump,
     subsystem: GameControllerSubsystem,
@@ -36,6 +41,8 @@ pub struct Input {
     trigger_left: bool,
     trigger_right: bool,
     last_rumble: u16,
+    autofire_a: Autofire,
+    autofire_b: Autofire,
 }
 
 impl Input {
@@ -49,51 +56,84 @@ impl Input {
             trigger_left: false,
             trigger_right: false,
             last_rumble: 0,
+            autofire_a: Autofire::new(Button::A),
+            autofire_b: Autofire::new(Button::B),
         })
     }
 
     pub fn poll(&mut self) -> Vec<Action> {
         let mut out = Vec::new();
-        for event in self.event_pump.poll_iter() {
+        let events: Vec<Event> = self.event_pump.poll_iter().collect();
+        for event in events {
             match event {
-                Event::DropFile { filename, .. } => {
-                    out.push(Action::LoadFile(filename));
-                }
-                Event::Quit { .. } | Event::KeyDown { scancode: Some(Scancode::Escape), .. } => out.push(Action::Quit),
-                Event::KeyDown { scancode: Some(Scancode::Num1), .. } => out.push(Action::SaveState),
-
-                Event::KeyDown { scancode: Some(Scancode::Space), repeat: false, .. } => {
-                    out.push(Action::HoldTurbo(Turbo::Unlimited, true))
-                }
-                Event::KeyUp { scancode: Some(Scancode::Space), .. } => {
-                    out.push(Action::HoldTurbo(Turbo::Unlimited, false))
-                }
-                Event::KeyDown { scancode: Some(s), repeat: false, .. } => out.extend(Self::key(s).map(Action::Press)),
-                Event::KeyUp { scancode: Some(s), .. } => out.extend(Self::key(s).map(Action::Release)),
-                Event::ControllerButtonDown { button, .. } => out.extend(Self::pad_action(button, true)),
-                Event::ControllerButtonUp { button, .. } => out.extend(Self::pad_action(button, false)),
-                Event::ControllerAxisMotion { axis: Axis::TriggerRight, value, .. } => {
-                    Self::trigger(&mut self.trigger_right, value, Turbo::Fast, &mut out)
-                }
-                Event::ControllerAxisMotion { axis: Axis::TriggerLeft, value, .. } => {
-                    Self::trigger(&mut self.trigger_left, value, Turbo::Unlimited, &mut out)
-                }
-                Event::ControllerAxisMotion { axis: Axis::LeftX, value, .. } => {
-                    Self::stick(&mut self.stick_x, value, Button::Left, Button::Right, &mut out)
-                }
-                Event::ControllerAxisMotion { axis: Axis::LeftY, value, .. } => {
-                    Self::stick(&mut self.stick_y, value, Button::Up, Button::Down, &mut out)
-                }
+                Event::Quit { .. } => out.push(Action::Quit),
+                Event::DropFile { filename, .. } => out.push(Action::LoadFile(filename)),
+                Event::KeyDown { scancode: Some(s), repeat: false, .. } => self.on_key(s, true, &mut out),
+                Event::KeyUp { scancode: Some(s), .. } => self.on_key(s, false, &mut out),
+                Event::ControllerButtonDown { button, .. } => self.on_button(button, true, &mut out),
+                Event::ControllerButtonUp { button, .. } => self.on_button(button, false, &mut out),
+                Event::ControllerAxisMotion { axis, value, .. } => self.on_axis(axis, value, &mut out),
                 Event::ControllerDeviceAdded { which, .. } => {
                     if let Ok(controller) = self.subsystem.open(which) {
                         self.controller = Some(controller);
                         self.last_rumble = 0;
                     }
                 }
+                Event::ControllerDeviceRemoved { which, .. }
+                    if self.controller.as_ref().is_some_and(|c| c.instance_id() == which) =>
+                {
+                    self.controller = None;
+                    for axis in [Axis::LeftX, Axis::LeftY, Axis::TriggerLeft, Axis::TriggerRight] {
+                        self.on_axis(axis, 0, &mut out);
+                    }
+                    self.clear_autofire(&mut out);
+                }
                 _ => {}
             }
         }
+        self.tick_autofire(&mut out);
         out
+    }
+
+    fn clear_autofire(&mut self, out: &mut Vec<Action>) {
+        self.autofire_a.set(false, out);
+        self.autofire_b.set(false, out);
+    }
+
+    fn tick_autofire(&mut self, out: &mut Vec<Action>) {
+        self.autofire_a.tick(out);
+        self.autofire_b.tick(out);
+    }
+
+    fn on_key(&mut self, s: Scancode, pressed: bool, out: &mut Vec<Action>) {
+        match s {
+            Scancode::Escape if pressed => out.push(Action::Quit),
+            Scancode::Num1 if pressed => out.push(Action::SaveState),
+            Scancode::Space => out.push(Action::HoldTurbo(Turbo::Unlimited, pressed)),
+            Scancode::M => self.autofire_b.set(pressed, out),
+            Scancode::Comma => self.autofire_a.set(pressed, out),
+            _ => out.extend(Self::key(s).map(|b| Action::button(b, pressed))),
+        }
+    }
+
+    fn on_button(&mut self, b: SdlButton, pressed: bool, out: &mut Vec<Action>) {
+        match b {
+            SdlButton::X => self.autofire_b.set(pressed, out),
+            SdlButton::Y => self.autofire_a.set(pressed, out),
+            SdlButton::RightShoulder if pressed => out.push(Action::ToggleTurbo(Turbo::Fast)),
+            SdlButton::LeftShoulder if pressed => out.push(Action::ToggleTurbo(Turbo::Unlimited)),
+            _ => out.extend(Self::pad(b).map(|b| Action::button(b, pressed))),
+        }
+    }
+
+    fn on_axis(&mut self, axis: Axis, value: i16, out: &mut Vec<Action>) {
+        match axis {
+            Axis::TriggerRight => Self::trigger(&mut self.trigger_right, value, Turbo::Fast, out),
+            Axis::TriggerLeft => Self::trigger(&mut self.trigger_left, value, Turbo::Unlimited, out),
+            Axis::LeftX => Self::stick(&mut self.stick_x, value, Button::Left, Button::Right, out),
+            Axis::LeftY => Self::stick(&mut self.stick_y, value, Button::Up, Button::Down, out),
+            _ => {}
+        }
     }
 
     pub fn rumble(&mut self, level: f32) {
@@ -125,14 +165,6 @@ impl Input {
         if pressed != *held {
             *held = pressed;
             out.push(Action::HoldTurbo(turbo, pressed));
-        }
-    }
-
-    fn pad_action(button: SdlButton, pressed: bool) -> Option<Action> {
-        match button {
-            SdlButton::RightShoulder => pressed.then_some(Action::ToggleTurbo(Turbo::Fast)),
-            SdlButton::LeftShoulder => pressed.then_some(Action::ToggleTurbo(Turbo::Unlimited)),
-            _ => Self::pad(button).map(if pressed { Action::Press } else { Action::Release }),
         }
     }
 

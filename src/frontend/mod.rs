@@ -1,3 +1,4 @@
+mod autofire;
 mod debug;
 mod input;
 mod timing;
