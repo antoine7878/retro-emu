@@ -6,22 +6,17 @@ use sdl2::keyboard::Scancode;
 use sdl2::{EventPump, GameControllerSubsystem, Sdl};
 
 use super::autofire::Autofire;
+use super::timing::Speed;
 use crate::gameboy::Button;
 
 const DEAD_ZONE: i16 = 8000;
 const M_DEAD_ZONE: i16 = -DEAD_ZONE;
 const TRIGGER_THRESHOLD: i16 = i16::MAX / 2;
 
-#[derive(Clone, Copy)]
-pub enum Turbo {
-    Fast,
-    Unlimited,
-}
-
 pub enum Action {
     Quit,
-    ToggleTurbo(Turbo),
-    HoldTurbo(Turbo, bool),
+    ToggleTurbo(Speed),
+    HoldTurbo(Speed, bool),
     Press(Button),
     Release(Button),
     LoadFile(String),
@@ -109,7 +104,7 @@ impl Input {
         match s {
             Scancode::Escape if pressed => out.push(Action::Quit),
             Scancode::Num1 if pressed => out.push(Action::SaveState),
-            Scancode::Space => out.push(Action::HoldTurbo(Turbo::Unlimited, pressed)),
+            Scancode::Space => out.push(Action::HoldTurbo(Speed::Unlimited, pressed)),
             Scancode::M => self.autofire_b.set(pressed, out),
             Scancode::Comma => self.autofire_a.set(pressed, out),
             _ => out.extend(Self::key(s).map(|b| Action::button(b, pressed))),
@@ -120,16 +115,16 @@ impl Input {
         match b {
             SdlButton::X => self.autofire_b.set(pressed, out),
             SdlButton::Y => self.autofire_a.set(pressed, out),
-            SdlButton::RightShoulder if pressed => out.push(Action::ToggleTurbo(Turbo::Fast)),
-            SdlButton::LeftShoulder if pressed => out.push(Action::ToggleTurbo(Turbo::Unlimited)),
+            SdlButton::LeftShoulder if pressed => out.push(Action::ToggleTurbo(Speed::Unlimited)),
+            SdlButton::RightShoulder if pressed => out.push(Action::ToggleTurbo(Speed::Fast)),
             _ => out.extend(Self::pad(b).map(|b| Action::button(b, pressed))),
         }
     }
 
     fn on_axis(&mut self, axis: Axis, value: i16, out: &mut Vec<Action>) {
         match axis {
-            Axis::TriggerRight => Self::trigger(&mut self.trigger_right, value, Turbo::Fast, out),
-            Axis::TriggerLeft => Self::trigger(&mut self.trigger_left, value, Turbo::Unlimited, out),
+            Axis::TriggerRight => Self::trigger(&mut self.trigger_right, value, Speed::Fast, out),
+            Axis::TriggerLeft => Self::trigger(&mut self.trigger_left, value, Speed::Unlimited, out),
             Axis::LeftX => Self::stick(&mut self.stick_x, value, Button::Left, Button::Right, out),
             Axis::LeftY => Self::stick(&mut self.stick_y, value, Button::Up, Button::Down, out),
             _ => {}
@@ -160,11 +155,11 @@ impl Input {
         *held = new;
     }
 
-    fn trigger(held: &mut bool, value: i16, turbo: Turbo, out: &mut Vec<Action>) {
+    fn trigger(held: &mut bool, value: i16, speed: Speed, out: &mut Vec<Action>) {
         let pressed = value > TRIGGER_THRESHOLD;
         if pressed != *held {
             *held = pressed;
-            out.push(Action::HoldTurbo(turbo, pressed));
+            out.push(Action::HoldTurbo(speed, pressed));
         }
     }
 

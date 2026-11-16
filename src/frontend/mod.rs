@@ -57,13 +57,13 @@ impl Frontend {
                 Action::Quit => return false,
                 Action::Press(button) => game_boy.press(button),
                 Action::Release(button) => game_boy.release(button),
-                Action::ToggleTurbo(turbo) => {
-                    if pacer.toggle_turbo(turbo, game_boy) {
+                Action::ToggleTurbo(speed) => {
+                    if pacer.toggle_turbo(speed, game_boy) {
                         self.video.set_title(game_boy, pacer.speed(), None);
                     }
                 }
-                Action::HoldTurbo(turbo, held) => {
-                    if pacer.hold_turbo(turbo, held, game_boy) {
+                Action::HoldTurbo(speed, held) => {
+                    if pacer.hold_turbo(speed, held, game_boy) {
                         self.video.set_title(game_boy, pacer.speed(), None);
                     }
                 }

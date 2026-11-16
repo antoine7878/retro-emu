@@ -1,31 +1,21 @@
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
-use super::input::Turbo;
 use crate::gameboy::GameBoy;
 
 pub const TURBO_FACTOR: u32 = 2;
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Speed {
     Normal,
     Fast,
     Unlimited,
 }
 
-#[derive(Default)]
-struct Boost {
-    toggled: bool,
-    held: bool,
-}
-
-impl Boost {
-    fn active(&self) -> bool { self.toggled || self.held }
-}
-
 pub struct Pacer {
-    fast: Boost,
-    unlimited: Boost,
+    latched: Speed,
+    held_fast: bool,
+    held_unlimited: bool,
     normal_frame_time: Option<Duration>,
     next_frame: Instant,
 }
@@ -33,43 +23,40 @@ pub struct Pacer {
 impl Pacer {
     pub fn new(game_boy: &GameBoy) -> Self {
         Self {
-            fast: Boost::default(),
-            unlimited: Boost::default(),
+            latched: Speed::Normal,
+            held_fast: false,
+            held_unlimited: false,
             normal_frame_time: game_boy.config.frame_time,
             next_frame: Instant::now(),
         }
     }
 
     pub fn speed(&self) -> Speed {
-        match (self.unlimited.active(), self.fast.active()) {
+        let held = match (self.held_unlimited, self.held_fast) {
             (true, _) => Speed::Unlimited,
             (false, true) => Speed::Fast,
             (false, false) => Speed::Normal,
-        }
+        };
+        held.max(self.latched)
     }
 
     pub fn begin_frame(&mut self, game_boy: &GameBoy) {
         self.next_frame += game_boy.config.frame_time.unwrap_or_default();
     }
 
-    pub fn toggle_turbo(&mut self, turbo: Turbo, game_boy: &mut GameBoy) -> bool {
+    pub fn toggle_turbo(&mut self, speed: Speed, game_boy: &mut GameBoy) -> bool {
         let before = self.speed();
-        let boost = self.boost(turbo);
-        boost.toggled = !boost.toggled;
+        self.latched = if self.latched == Speed::Normal { speed } else { Speed::Normal };
         self.apply(before, game_boy)
     }
 
-    pub fn hold_turbo(&mut self, turbo: Turbo, held: bool, game_boy: &mut GameBoy) -> bool {
+    pub fn hold_turbo(&mut self, speed: Speed, held: bool, game_boy: &mut GameBoy) -> bool {
         let before = self.speed();
-        self.boost(turbo).held = held;
-        self.apply(before, game_boy)
-    }
-
-    fn boost(&mut self, turbo: Turbo) -> &mut Boost {
-        match turbo {
-            Turbo::Fast => &mut self.fast,
-            Turbo::Unlimited => &mut self.unlimited,
+        match speed {
+            Speed::Fast => self.held_fast = held,
+            _ => self.held_unlimited = held,
         }
+        self.apply(before, game_boy)
     }
 
     fn apply(&mut self, before: Speed, game_boy: &mut GameBoy) -> bool {
