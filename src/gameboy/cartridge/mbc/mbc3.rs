@@ -4,14 +4,10 @@ use crate::gameboy::cartridge::header::CartridgeHeader;
 use crate::gameboy::memory::map;
 use crate::save_state_struct;
 
-use super::Mbc;
+use super::{Banks, Mbc};
 
 pub struct Mbc3 {
-    rom: Vec<u8>,
-    ram: Vec<u8>,
-    rom_bank_count: usize,
-    ram_bank_count: usize,
-    ram_size: usize,
+    mem: Banks,
     selected_rom_bank: usize,
     selected_ram_bank: usize,
     prev_latch_reg: u8,
@@ -25,24 +21,14 @@ pub struct Mbc3 {
 }
 
 #[rustfmt::skip]
-save_state_struct!(Mbc3 { ram, rom_bank_count, ram_bank_count, ram_size, selected_rom_bank, selected_ram_bank, prev_latch_reg, ram_enabled, has_rtc, time, latch, rtc_clock });
+save_state_struct!(Mbc3 { mem, selected_rom_bank, selected_ram_bank, prev_latch_reg, ram_enabled, has_rtc, time, latch, rtc_clock });
 
 const TIME_MASKS: [u8; 5] = [0x3F, 0x3F, 0x1F, 0xFF, 0xC1];
 
 impl Mbc for Mbc3 {
     fn try_from_header(rom: Vec<u8>, header: &CartridgeHeader) -> Option<Self> {
-        let rom_bank_count = header.rom_bank_count as usize;
-        let rom_size = rom_bank_count * map::ROM_BANK_SIZE;
-        let mut rom = rom;
-        rom.resize(rom_size, 0);
-        let ram_bank_count = header.ram_bank_count as usize;
-        let ram_size = ram_bank_count * map::SRAM_BANK_SIZE;
         Some(Self {
-            rom,
-            ram: vec![0; ram_size],
-            rom_bank_count,
-            ram_bank_count,
-            ram_size,
+            mem: Banks::from_header(rom, header),
             has_rtc: header.has_rtc(),
             selected_rom_bank: 1,
             selected_ram_bank: 0,
@@ -56,16 +42,16 @@ impl Mbc for Mbc3 {
 
     fn read(&self, addr: u16) -> u8 {
         match addr {
-            map::ROM_START..map::ROM_END => self.rom[self.rom_offset(addr)],
+            map::ROM_START..map::ROM_END => self.mem.read_rom(self.selected_rom_bank(addr), addr),
             map::SRAM_START..map::SRAM_END
                 if self.ram_enabled && self.has_rtc && (0x08..=0x0C).contains(&self.selected_ram_bank) =>
             {
                 self.latch[self.selected_ram_bank - 0x08]
             }
             map::SRAM_START..map::SRAM_END
-                if self.ram_enabled && !self.ram.is_empty() && (0x00..=0x07).contains(&self.selected_ram_bank) =>
+                if self.ram_enabled && self.mem.has_ram() && (0x00..=0x07).contains(&self.selected_ram_bank) =>
             {
-                self.ram[self.ram_offset(addr)]
+                self.mem.read_ram(self.selected_ram_bank, addr)
             }
             _ => 0xFF,
         }
@@ -73,7 +59,7 @@ impl Mbc for Mbc3 {
 
     fn write(&mut self, addr: u16, value: u8) {
         match addr {
-            0x0000..0x2000 => self.ram_enabled = value & 0x0F == 0x0A && (self.ram_size > 0 || self.has_rtc),
+            0x0000..0x2000 => self.ram_enabled = value & 0x0F == 0x0A && (self.mem.has_ram() || self.has_rtc),
             0x2000..0x4000 => self.selected_rom_bank = usize::max(value as usize & 0x7F, 1),
             0x4000..0x6000 => self.selected_ram_bank = value as usize & 0x0F,
             0x6000..0x8000 => {
@@ -92,29 +78,29 @@ impl Mbc for Mbc3 {
                 }
             }
             map::SRAM_START..map::SRAM_END
-                if self.ram_enabled && !self.ram.is_empty() && (0x00..=0x07).contains(&self.selected_ram_bank) =>
+                if self.ram_enabled && self.mem.has_ram() && (0x00..=0x07).contains(&self.selected_ram_bank) =>
             {
-                let offset = self.ram_offset(addr);
-                self.ram[offset] = value
+                self.mem.write_ram(self.selected_ram_bank, addr, value)
             }
             _ => (),
         }
     }
 
-    fn rom(&self) -> Vec<u8> { self.rom.clone() }
+    fn rom(&self) -> Vec<u8> { self.mem.rom() }
 
     fn ram(&self) -> Vec<u8> {
-        let mut out = vec![0u8; 8 + 5 + self.ram.len()];
+        let ram = self.mem.ram();
+        let mut out = vec![0u8; 8 + 5 + ram.len()];
         let save_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs().to_be_bytes();
         out[..8].copy_from_slice(&save_time);
         out[8..13].copy_from_slice(&self.time);
-        out[13..].copy_from_slice(&self.ram);
+        out[13..].copy_from_slice(&ram);
         out
     }
 
     fn load_ram(&mut self, ram: Vec<u8>) {
         let mut ram = ram;
-        ram.resize(self.ram_size + 8 + 5, 0);
+        ram.resize(ram.len().max(8 + 5), 0);
         let time_of_save = u64::from_be_bytes(ram[..8].try_into().unwrap_or_default());
         let saved_rtc = self.seconds_of_reg(&ram[8..13]);
 
@@ -123,7 +109,7 @@ impl Mbc for Mbc3 {
         let elapsed = if halted { 0 } else { now.saturating_sub(time_of_save) };
         let seconds = saved_rtc + elapsed;
         self.init_reg_with(seconds, ram[12]);
-        self.ram = ram[13..].to_vec();
+        self.mem.load_ram(ram[13..].to_vec());
     }
 
     fn tick(&mut self, dots: u8) {
@@ -170,23 +156,13 @@ impl Mbc3 {
         self.time[4] |= ((day >= 512) as u8) << 7;
     }
 
-    fn rom_offset(&self, addr: u16) -> usize {
-        self.selected_rom_bank(addr) * map::ROM_BANK_SIZE + (addr & 0x3FFF) as usize
-    }
-
-    fn ram_offset(&self, addr: u16) -> usize {
-        self.selected_ram_bank() * map::SRAM_BANK_SIZE + (addr - map::SRAM_START) as usize
-    }
-
     fn selected_rom_bank(&self, addr: u16) -> usize {
         match addr {
             map::ROM_START..map::ROM_HALF => 0,
-            map::ROM_HALF..map::ROM_END => self.selected_rom_bank & self.rom_bank_count.saturating_sub(1),
+            map::ROM_HALF..map::ROM_END => self.selected_rom_bank,
             _ => unreachable!(),
         }
     }
-
-    fn selected_ram_bank(&self) -> usize { self.selected_ram_bank & self.ram_bank_count.saturating_sub(1) }
 
     fn seconds_of_reg(&self, time: &[u8]) -> u64 {
         let [sec, min, hour, day, flags] = *time else { return 0 };

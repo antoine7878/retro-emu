@@ -1,9 +1,11 @@
+mod banks;
 mod mbc1;
 mod mbc2;
 mod mbc3;
 mod mbc5;
 mod rom_only;
 
+use banks::Banks;
 use mbc1::Mbc1;
 use mbc2::Mbc2;
 use mbc3::Mbc3;
