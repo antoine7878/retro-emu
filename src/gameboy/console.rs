@@ -4,6 +4,7 @@ use crate::gameboy::cartridge::{CartridgeHeader, MAGIC_SAVE};
 use crate::gameboy::config::Config;
 use crate::gameboy::cpu::Cpu;
 use crate::gameboy::cpu::instruction::Instruction;
+use crate::gameboy::cpu::registers::CpuRegisters;
 use crate::gameboy::io::joypad::Button;
 use crate::gameboy::memory::bus::Bus;
 use crate::gameboy::monitor::Monitor;
@@ -116,24 +117,7 @@ impl GameBoy {
             .collect()
     }
 
-    pub fn dump_registers(&self) -> Vec<String> {
-        let regs = self.cpu.registers();
-        let flag = |bit, name| if bit == 1 { name } else { '-' };
-        let flags = String::from_iter([
-            flag(regs.get_z(), 'Z'),
-            flag(regs.get_n(), 'N'),
-            flag(regs.get_h(), 'H'),
-            flag(regs.get_c(), 'C'),
-        ]);
-        vec![
-            format!("AF {:04X}  {}", regs.get_af(), flags),
-            format!("BC {:04X}", regs.get_bc()),
-            format!("DE {:04X}", regs.get_de()),
-            format!("HL {:04X}", regs.get_hl()),
-            format!("SP {:04X}", regs.get_sp()),
-            format!("PC {:04X}", regs.pc()),
-        ]
-    }
+    pub fn registers(&self) -> &CpuRegisters { self.cpu.registers() }
 
     pub fn set_trace(&mut self, on: bool) { self.bus.set_trace(on); }
     pub fn bus(&self) -> &Bus { &self.bus }

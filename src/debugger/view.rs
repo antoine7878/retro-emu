@@ -45,7 +45,8 @@ impl Debugger {
 
     fn disassembly_registers_panel(&self, game_boy: &GameBoy) -> String {
         let asm = self.make_asm(game_boy);
-        let regs = game_boy.dump_registers();
+        let regs = game_boy.registers().to_string();
+        let regs: Vec<&str> = regs.lines().collect();
         let mut out = format!(
             "┌─{BOLD} Disassembly {RESET}{:─<w1$}┐┌─{BOLD} Registers {RESET}{:─<w2$}┐\n",
             "",
@@ -55,7 +56,7 @@ impl Debugger {
         );
         for i in 0..PANEL_HEIGHT {
             let left = asm.get(i).cloned().unwrap_or_else(|| Self::pad("", ASM_WIDTH));
-            let right = Self::pad(regs.get(i).map_or("", String::as_str), REG_WIDTH);
+            let right = Self::pad(regs.get(i).copied().unwrap_or(""), REG_WIDTH);
             let (name, value) = right.split_at(2);
             let right = format!("{CYAN}{name}{RESET}{value}");
             out += &format!("│{left}││{right}│\n");

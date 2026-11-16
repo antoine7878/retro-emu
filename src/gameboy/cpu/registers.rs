@@ -132,15 +132,20 @@ impl CpuRegisters {
 
 impl fmt::Display for CpuRegisters {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "A: {:02X} ", self.a)?;
-        write!(f, "F: {:02X} ", self.f)?;
-        write!(f, "B: {:02X} ", self.b)?;
-        write!(f, "C: {:02X} ", self.c)?;
-        write!(f, "D: {:02X} ", self.d)?;
-        write!(f, "E: {:02X} ", self.e)?;
-        write!(f, "H: {:02X} ", self.h)?;
-        write!(f, "L: {:02X} ", self.l)?;
-        write!(f, "SP: {:04X} ", self.sp)?;
-        write!(f, "PC: {:04X}", self.pc)
+        let flag = |bit, name| if bit == 1 { name } else { '-' };
+        writeln!(
+            f,
+            "AF {:04X}  {}{}{}{}",
+            self.get_af(),
+            flag(self.get_z(), 'Z'),
+            flag(self.get_n(), 'N'),
+            flag(self.get_h(), 'H'),
+            flag(self.get_c(), 'C')
+        )?;
+        writeln!(f, "BC {:04X}", self.get_bc())?;
+        writeln!(f, "DE {:04X}", self.get_de())?;
+        writeln!(f, "HL {:04X}", self.get_hl())?;
+        writeln!(f, "SP {:04X}", self.sp)?;
+        write!(f, "PC {:04X}", self.pc)
     }
 }
