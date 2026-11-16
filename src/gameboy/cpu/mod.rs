@@ -4,6 +4,7 @@ pub mod instruction;
 pub mod registers;
 mod shift;
 
+use crate::gameboy::io::joypad;
 use crate::gameboy::memory::bus::Bus;
 use crate::gameboy::memory::map;
 use crate::{save_state_enum, save_state_struct};
@@ -72,7 +73,7 @@ impl Cpu {
         if self.power_mode != PowerMode::Stop {
             return false;
         }
-        if bus.joypad().read() & 0x0F == 0x0F {
+        if bus.joypad().read() & joypad::LINE_MASK == joypad::ALL_RELEASED {
             return true;
         }
         self.power_mode = PowerMode::Normal;

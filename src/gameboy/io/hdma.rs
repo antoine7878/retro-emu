@@ -65,7 +65,7 @@ impl Hdma {
             return None;
         }
         let src = self.src;
-        let dst = map::VRAM_START | (self.dst & 0x1FFF);
+        let dst = map::VRAM_START | (self.dst % map::VRAM_SIZE as u16);
         self.src = self.src.wrapping_add(1);
         self.dst = self.dst.wrapping_add(1);
         if self.dst & 0x0F == 0 {

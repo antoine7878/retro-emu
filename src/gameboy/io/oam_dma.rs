@@ -29,7 +29,7 @@ impl OamDma {
         if std::mem::take(&mut self.is_delay) {
             self.has_transferred = self.is_active;
             let src = (self.dma.read() as u16) << 8;
-            self.src = if src >= map::ECHO_START { src - 0x2000 } else { src };
+            self.src = if src >= map::ECHO_START { src - map::ECHO_START + map::WRAM_START } else { src };
             self.i = 0;
             self.is_active = true;
             return None;
@@ -40,7 +40,7 @@ impl OamDma {
         }
         let ret = Some((self.src + self.i, self.i));
         self.i += 1;
-        if self.i == 160 {
+        if self.i as usize == map::OAM_SIZE {
             self.is_active = false;
         }
         self.has_transferred = true;

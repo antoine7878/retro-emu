@@ -3,7 +3,7 @@ use std::vec::Drain;
 use crate::gameboy::cartridge::Cartridge;
 use crate::gameboy::config::Model;
 use crate::gameboy::io::hdma::Hdma;
-use crate::gameboy::io::interrupt::Interrupter;
+use crate::gameboy::io::interrupt::{self, Interrupter};
 use crate::gameboy::io::joypad::{Button, Joypad};
 use crate::gameboy::io::link::Link;
 use crate::gameboy::io::oam_dma::OamDma;
@@ -83,7 +83,7 @@ impl Bus {
             VRAM_START..VRAM_END => self.ppu.read(addr),
             SRAM_START..SRAM_END => self.cartridge.read(addr),
             WRAM_START..WRAM_END => self.wram.read(addr),
-            ECHO_START..ECHO_END => self.read_internal(addr - 0x2000),
+            ECHO_START..ECHO_END => self.read_internal(addr - ECHO_START + WRAM_START),
             OAM_START..OAM_END => self.ppu.read(addr),
             OAM_DMA => self.oam_dma.read(),
             PPU_START..PPU_END => self.ppu.read(addr),
@@ -133,7 +133,7 @@ impl Bus {
             VRAM_START..VRAM_END => self.ppu.write(addr, value),
             SRAM_START..SRAM_END => self.cartridge.write(addr, value),
             WRAM_START..WRAM_END => self.wram.write(addr, value),
-            ECHO_START..ECHO_END => self.write_internal(addr - 0x2000, value),
+            ECHO_START..ECHO_END => self.write_internal(addr - ECHO_START + WRAM_START, value),
             OAM_START..OAM_END => self.ppu.write(addr, value),
             OAM_DMA => self.oam_dma.write(value),
             STAT => self.ppu.write_stat(value, self.interrupter.ifl_mut()),
@@ -222,7 +222,7 @@ impl Bus {
 
     pub fn press(&mut self, button: Button) {
         if self.joypad.press(button) {
-            self.interrupter.ifl_mut().set(4);
+            self.interrupter.ifl_mut().set(interrupt::JOYPAD);
         }
     }
 

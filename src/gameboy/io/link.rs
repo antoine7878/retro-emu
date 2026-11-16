@@ -1,6 +1,6 @@
 use std::io::Write;
 
-use crate::gameboy::io::interrupt::InterruptFlag;
+use crate::gameboy::io::interrupt::{self, InterruptFlag};
 use crate::gameboy::memory::io_reg::{IOReg, IORegister};
 use crate::gameboy::memory::map;
 use crate::save_state_struct;
@@ -55,7 +55,7 @@ impl Link {
         if self.remaining == 0 {
             self.buffer.write(0xFF);
             self.ctrl.clear(7);
-            ifl.set(3);
+            ifl.set(interrupt::SERIAL);
         }
     }
 

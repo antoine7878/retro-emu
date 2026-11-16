@@ -43,4 +43,4 @@ impl Mbc for Mbc2 {
     fn load_ram(&mut self, ram: Vec<u8>) { self.mem.load_ram(ram) }
 }
 
-fn ram_addr(addr: u16) -> u16 { map::SRAM_START | (addr & 0x01FF) }
+fn ram_addr(addr: u16) -> u16 { map::SRAM_START | (addr % RAM_SIZE as u16) }

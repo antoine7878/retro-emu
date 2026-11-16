@@ -73,7 +73,7 @@ impl Prompt {
                     }
                     _ => {}
                 },
-                c @ 0x20..0x7f => {
+                c @ 0x20..DEL => {
                     buf.insert(cursor, c);
                     cursor += 1;
                 }

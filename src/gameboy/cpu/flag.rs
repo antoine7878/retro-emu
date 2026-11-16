@@ -1,3 +1,5 @@
+use crate::gameboy::cpu::registers::{CARRY_FLAG, HALF_CARRY_FLAG, SUB_FLAG, ZERO_FLAG};
+
 #[derive(Clone, Copy, Default)]
 pub struct Flags {
     pub z: bool,
@@ -7,7 +9,9 @@ pub struct Flags {
 }
 
 impl From<Flags> for u8 {
-    fn from(f: Flags) -> Self { (f.z as u8) << 7 | (f.n as u8) << 6 | (f.h as u8) << 5 | (f.c as u8) << 4 }
+    fn from(f: Flags) -> Self {
+        (f.z as u8) << ZERO_FLAG | (f.n as u8) << SUB_FLAG | (f.h as u8) << HALF_CARRY_FLAG | (f.c as u8) << CARRY_FLAG
+    }
 }
 
 #[derive(Clone, Copy)]

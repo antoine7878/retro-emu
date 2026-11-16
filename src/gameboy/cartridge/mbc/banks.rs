@@ -39,7 +39,7 @@ impl Banks {
 
     fn rom_offset(&self, bank: usize, addr: u16) -> usize {
         let mask = (self.rom.len() / map::ROM_BANK_SIZE).saturating_sub(1);
-        (bank & mask) * map::ROM_BANK_SIZE + (addr & 0x3FFF) as usize
+        (bank & mask) * map::ROM_BANK_SIZE + addr as usize % map::ROM_BANK_SIZE
     }
 
     fn ram_offset(&self, bank: usize, addr: u16) -> usize {

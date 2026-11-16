@@ -4,10 +4,10 @@ use crate::gameboy::cpu::flag::{FlagSpec, Flags};
 use crate::gameboy::cpu::instruction::{R8, R16, R16Stk};
 use crate::save_state_struct;
 
-const ZERO_FLAG: u8 = 7;
-const SUB_FLAG: u8 = 6;
-const HALF_CARRY_FLAG: u8 = 5;
-const CARRY_FLAG: u8 = 4;
+pub const ZERO_FLAG: u8 = 7;
+pub const SUB_FLAG: u8 = 6;
+pub const HALF_CARRY_FLAG: u8 = 5;
+pub const CARRY_FLAG: u8 = 4;
 
 #[rustfmt::skip]
 #[derive(Default)]

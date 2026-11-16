@@ -1,5 +1,5 @@
 use crate::gameboy::config::Model;
-use crate::gameboy::io::interrupt::InterruptFlag;
+use crate::gameboy::io::interrupt::{self, InterruptFlag};
 use crate::gameboy::memory::io_reg::{IOReg, IORegister};
 use crate::gameboy::memory::map;
 use crate::{save_state_enum, save_state_struct};
@@ -171,7 +171,7 @@ impl Ppu {
             let lyc_match = self.ly.read_raw() == self.lyc.read_raw();
             let line = matches!(self.mode, PpuMode::HBlank | PpuMode::VBlank) || lyc_match;
             if line && !self.stat_line {
-                ifl.set(1);
+                ifl.set(interrupt::STAT);
             }
             self.stat_line = line;
         }
@@ -270,7 +270,7 @@ impl Ppu {
             || (stat & 0x40 != 0 && lyc_match);
 
         if line && !self.stat_line {
-            ifl.set(1);
+            ifl.set(interrupt::STAT);
         }
         self.stat_line = line;
     }
@@ -417,10 +417,10 @@ impl Ppu {
 
     fn next_line(&mut self, ifl: &mut InterruptFlag) {
         self.ly += 1;
-        match self.ly.read() {
-            144 => {
+        match self.ly.read() as usize {
+            HEIGHT => {
                 self.set_mode(PpuMode::VBlank, ifl);
-                ifl.set(0);
+                ifl.set(interrupt::VBLANK);
                 self.redraw = !std::mem::take(&mut self.skip_frame);
             }
             154 => {
@@ -429,7 +429,7 @@ impl Ppu {
                 self.wy_triggered = false;
                 self.set_mode(PpuMode::OamScan, ifl);
             }
-            0..144 => self.set_mode(PpuMode::OamScan, ifl),
+            0..HEIGHT => self.set_mode(PpuMode::OamScan, ifl),
             _ => (),
         }
     }

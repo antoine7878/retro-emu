@@ -1,4 +1,4 @@
-use crate::gameboy::io::interrupt::InterruptFlag;
+use crate::gameboy::io::interrupt::{self, InterruptFlag};
 use crate::gameboy::memory::io_reg::{IOReg, IORegister};
 use crate::gameboy::memory::map;
 use crate::save_state_struct;
@@ -58,7 +58,7 @@ impl Timer {
     fn tick_tima(&mut self, ifl: &mut InterruptFlag) {
         if self.tima.read_raw() == 0xFF {
             self.tima.write_raw(self.tma.read_raw());
-            ifl.set(2);
+            ifl.set(interrupt::TIMER);
         } else {
             self.tima += 1;
         }
